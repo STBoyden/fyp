@@ -25,10 +25,10 @@ build_server: prebuild
 	go build -C ./server -o ../build/server main.go
 
 run: prerun build_game build_server
-	( ./build/game | tee -a $(LOGS_DIR)/game.tmp.log ) > /dev/null & disown
-	./build/server | tee -a $(LOGS_DIR)/server.tmp.log
+	( ./build/game 2>&1 | tee -a $(LOGS_DIR)/game.log ) > /dev/null & disown
+	./build/server 2>&1 | tee -a $(LOGS_DIR)/server.log
 	@echo
 
 run_server: prerun build_server
-	./build/server | tee -a $(LOGS_DIR)/server.tmp.log
+	./build/server 2>&1 | tee -a $(LOGS_DIR)/server.log
 	@echo
