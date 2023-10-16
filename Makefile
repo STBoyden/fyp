@@ -1,5 +1,5 @@
-DATE := $(shell date -u +"%Y-%m-%d")
-TIME := $(shell date -u +"%H%M%S")
+DATE := $(shell date +"%Y-%m-%d")
+TIME := $(shell date +"%H%M%S")
 LOGS_DIR := logs/$(DATE)/$(TIME)
 
 .PHONY: all
