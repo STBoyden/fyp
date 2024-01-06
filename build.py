@@ -7,10 +7,6 @@ import sys
 
 from datetime import date, datetime
 
-if os.name != "nt":
-    print("This build script needs to be ran on Windows")
-    exit(1)
-
 if __name__ != "__main__":
     print("This script needs to be ran directly")
     exit(1)
