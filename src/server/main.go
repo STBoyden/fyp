@@ -1,14 +1,17 @@
 package main
 
 import (
-	"log"
 	"net"
 	"os"
 	"os/signal"
 	"strconv"
 	"strings"
 	"sync"
+
+	logging "github.com/STBoyden/fyp/src/utils"
 )
+
+var log = logging.NewServer()
 
 func makeParallel(functions ...func()) {
 	var group sync.WaitGroup
@@ -36,7 +39,7 @@ func main() {
 	}
 	tcpPort, err := strconv.Atoi(tcpPortStr)
 	if err != nil {
-		log.Fatal(":: SERVER :: [FATAL]: Could not parse TCP_PORT value, expected a value convertable to an integer: " + err.Error())
+		log.Errorf("Could not parse TCP_PORT value, expected a value convertable to an integer: %s", err.Error())
 	}
 
 	if _p, isPresent := os.LookupEnv("UDP_PORT"); isPresent {
@@ -46,7 +49,7 @@ func main() {
 	}
 	udpPort, err := strconv.Atoi(udpPortStr)
 	if err != nil {
-		log.Fatal(":: SERVER :: [FATAL]: Could not parse UDP_PORT value, expected a value convertable to an integer: " + err.Error())
+		log.Errorf("Could not parse UDP_PORT value, expected a value convertable to an integer: %s", err.Error())
 	}
 
 	errorCorrectionSocket, err := net.ListenTCP(
@@ -54,13 +57,13 @@ func main() {
 		&net.TCPAddr{IP: net.IPv4(0, 0, 0, 0), Port: tcpPort},
 	)
 	if err != nil {
-		log.Fatal(":: SERVER :: [FATAL]: Could not start TCP socket listener: " + err.Error())
+		log.Errorf("Could not start TCP socket listener: %s", err.Error())
 	}
 	correctionSocketFunc := func() {
-		log.Printf(":: SERVER :: [INFO]: Started error correction socket (TCP) on %d\n", tcpPort)
+		log.Infof("Started error correction socket (TCP) on %d\n", tcpPort)
 		go func() {
 			<-gracefulCloseChannel
-			log.Println(":: SERVER - TCP :: [INFO]: Stopping...")
+			log.Infof("[TCP] Stopping...")
 			errorCorrectionSocket.Close()
 		}()
 
@@ -72,11 +75,11 @@ func main() {
 					break
 				}
 
-				log.Println(":: SERVER - TCP :: [ERR]: Could not receive on TCP socket: " + err.Error())
+				log.Errorf("[TCP] Could not receive on TCP socket: %s", err.Error())
 				continue
 			}
 
-			log.Printf(":: SERVER - TCP :: [INFO]: Connected with %s\n", conn.RemoteAddr())
+			log.Infof("[TCP] Connected with %s\n", conn.RemoteAddr())
 
 			conn.Write([]byte("Hello!"))
 		}
@@ -86,13 +89,13 @@ func main() {
 		&net.UDPAddr{IP: net.IPv4(0, 0, 0, 0), Port: udpPort},
 	)
 	if err != nil {
-		log.Fatal(":: SERVER :: [FATAL]: Could not start UDP socket listener: " + err.Error())
+		log.Errorf("Could not start UDP socket listener: %s", err.Error())
 	}
 	gameSocketFunc := func() {
-		log.Printf(":: SERVER :: [INFO]: Started game data socket (UDP) on %d\n", udpPort)
+		log.Infof("Started game data socket (UDP) on %d\n", udpPort)
 		go func() {
 			<-gracefulCloseChannel
-			log.Println(":: SERVER - UDP :: [INFO]: Stopping...")
+			log.Infof("[UDP] Stopping...")
 			gameSocket.Close()
 		}()
 
@@ -105,11 +108,11 @@ func main() {
 					break
 				}
 
-				log.Printf(":: SERVER - UDP :: [ERR]: %s\n", err)
+				log.Errorf("[UDP] %s\n", err)
 				continue
 			}
 
-			log.Printf(":: SERVER - UDP :: [INFO]: Received data from %s: %s\n", addr, string(buf))
+			log.Infof("[UDP] Received data from %s: %s\n", addr, string(buf))
 		}
 	}
 
@@ -120,12 +123,12 @@ func main() {
 			if s == os.Interrupt {
 				gracefulCloseChannel <- struct{}{}
 				gracefulCloseChannel <- struct{}{}
-				log.Println(":: SERVER - SIGNAL HANDLER :: [INFO]: Received interrupt signal, gracefully shutting down")
+				log.Infof("[SIGNAL HANDLER] Received interrupt signal, gracefully shutting down")
 				break
 			}
 		}
 	}
 
 	makeParallel(gameSocketFunc, correctionSocketFunc, signalFunc)
-
+	log.Info("Exited")
 }
