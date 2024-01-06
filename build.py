@@ -129,11 +129,8 @@ def run_with_logs():
     print()
 
 
-action = "build"
-
 if len(sys.argv) > 1:
     action = sys.argv[1]
-    print(action)
 
     match action:
         case "build":
