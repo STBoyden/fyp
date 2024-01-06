@@ -1,2 +1,6 @@
 /build
 /logs
+
+go.work.sum
+.DS_STORE
+.env
