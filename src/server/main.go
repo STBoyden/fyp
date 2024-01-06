@@ -40,6 +40,7 @@ func main() {
 	tcpPort, err := strconv.Atoi(tcpPortStr)
 	if err != nil {
 		log.Errorf("Could not parse TCP_PORT value, expected a value convertable to an integer: %s", err.Error())
+		return
 	}
 
 	if _p, isPresent := os.LookupEnv("UDP_PORT"); isPresent {
@@ -50,6 +51,7 @@ func main() {
 	udpPort, err := strconv.Atoi(udpPortStr)
 	if err != nil {
 		log.Errorf("Could not parse UDP_PORT value, expected a value convertable to an integer: %s", err.Error())
+		return
 	}
 
 	errorCorrectionSocket, err := net.ListenTCP(
@@ -58,6 +60,7 @@ func main() {
 	)
 	if err != nil {
 		log.Errorf("Could not start TCP socket listener: %s", err.Error())
+		return
 	}
 	correctionSocketFunc := func() {
 		log.Infof("Started error correction socket (TCP) on %d\n", tcpPort)
@@ -90,6 +93,7 @@ func main() {
 	)
 	if err != nil {
 		log.Errorf("Could not start UDP socket listener: %s", err.Error())
+		return
 	}
 	gameSocketFunc := func() {
 		log.Infof("Started game data socket (UDP) on %d\n", udpPort)
