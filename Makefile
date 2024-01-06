@@ -4,7 +4,7 @@ LOGS_DIR := logs/$(DATE)/$(TIME)
 
 .PHONY: all
 
-all: clean run
+all: clean build
 
 clean:
 	rm -rf build
@@ -17,12 +17,12 @@ prerun:
 	mkdir -p $(LOGS_DIR)
 
 build_game: prebuild
-	cd ./game && go mod tidy
-	go build -C ./game -o ../build/game main.go
+	cd ./src/game && go mod tidy
+	go build -C ./src/game -o ../build/game main.go
 
 build_server: prebuild
-	cd ./server && go mod tidy
-	go build -C ./server -o ../build/server main.go
+	cd ./src/server && go mod tidy
+	go build -C ./src/erver -o ../build/server main.go
 
 build: build_game build_server
 
