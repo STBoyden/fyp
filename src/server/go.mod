@@ -4,6 +4,6 @@ go 1.21.1
 
 replace github.com/STBoyden/fyp/utils => ../utils
 
-require github.com/STBoyden/fyp/utils v0.0.0-00010101000000-000000000000
+require github.com/STBoyden/fyp/src/utils v0.0.0-20240106154139-acf2a002cafc
 
 require github.com/TwiN/go-color v1.4.1 // indirect
