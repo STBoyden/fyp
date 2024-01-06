@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import os
 import shutil
 import subprocess
@@ -22,6 +24,8 @@ BUILD_DIR = os.path.normpath(f"{ROOT}/build")
 SRC_DIR = os.path.normpath(f"{ROOT}/src")
 GAME_SRC = os.path.normpath(f"{SRC_DIR}/game")
 SERVER_SRC = os.path.normpath(f"{SRC_DIR}/server")
+
+ext = ".exe" if os.name == "nt" else ""
 
 
 def clean():
@@ -50,9 +54,9 @@ def build_game():
     print("[BUILD_GAME] Running 'go mod tidy'")
     subprocess.run("go mod tidy".split(), cwd=GAME_SRC)
     print(
-        f"[BUILD_GAME] Running 'go build -C {GAME_SRC} -o {BUILD_DIR}\\game.exe main.go'"
+        f"[BUILD_GAME] Running 'go build -C {GAME_SRC} -o {BUILD_DIR}/game{ext} main.go'"
     )
-    subprocess.run(f"go build -C {GAME_SRC} -o {BUILD_DIR}\\game.exe main.go".split())
+    subprocess.run(f"go build -C {GAME_SRC} -o {BUILD_DIR}/game{ext} main.go".split())
 
 
 def build_server():
@@ -61,10 +65,10 @@ def build_server():
     print("[BUILD_SERVER] Running 'go mod tidy'")
     subprocess.run("go mod tidy".split(), cwd=SERVER_SRC)
     print(
-        f"[BUILD_SERVER] Running 'go build -C {SERVER_SRC} -o {BUILD_DIR}\\server.exe main.go'"
+        f"[BUILD_SERVER] Running 'go build -C {SERVER_SRC} -o {BUILD_DIR}/server{ext} main.go'"
     )
     subprocess.run(
-        f"go build -C {SERVER_SRC} -o {BUILD_DIR}\\server.exe main.go".split()
+        f"go build -C {SERVER_SRC} -o {BUILD_DIR}/server{ext} main.go".split()
     )
 
 
@@ -79,7 +83,7 @@ def run_game(skip_prerun=False, wait=True, pipe_logs=True):
 
     build_game()
 
-    game_bin = os.path.normpath(f"{BUILD_DIR}/game.exe")
+    game_bin = os.path.normpath(f"{BUILD_DIR}/game{ext}")
 
     process = None
 
@@ -101,7 +105,7 @@ def run_server(skip_prerun=False, pipe_logs=True):
 
     build_server()
 
-    server_bin = os.path.normpath(f"{BUILD_DIR}/server.exe")
+    server_bin = os.path.normpath(f"{BUILD_DIR}/server{ext}")
 
     print("Running server...")
     if pipe_logs:
