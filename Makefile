@@ -1,16 +1,18 @@
 DATE := $(shell date +"%Y-%m-%d")
 TIME := $(shell date +"%H%M%S")
-LOGS_DIR := logs/$(DATE)/$(TIME)
+ROOT := $(shell pwd)
+LOGS_DIR := $(ROOT)/logs/$(DATE)/$(TIME)
+BUILD_DIR := $(ROOT)/build
 
 .PHONY: all
 
 all: clean build
 
 clean:
-	rm -rf build
+	rm -rf $(BUILD_DIR)
 
 prebuild:
-	mkdir -p build
+	mkdir -p $(BUILD_DIR)
 	go work sync
 
 prerun:
@@ -18,28 +20,28 @@ prerun:
 
 build_game: prebuild
 	cd ./src/game && go mod tidy
-	go build -C ./src/game -o ../build/game main.go
+	go build -C ./src/game -o $(BUILD_DIR)/game main.go
 
 build_server: prebuild
 	cd ./src/server && go mod tidy
-	go build -C ./src/erver -o ../build/server main.go
+	go build -C ./src/server -o $(BUILD_DIR)/server main.go
 
 build: build_game build_server
 
 run_game: prerun build_game
-	./build/game 2>&1 | tee -a $(LOGS_DIR)/game.log
+	$(BUILD_DIR)/game 2>&1 | tee -a $(LOGS_DIR)/game.log
 	@echo
 
 run_server: prerun build_server
-	./build/server 2>&1 | tee -a $(LOGS_DIR)/server.log
+	$(BUILD_DIR)/server 2>&1 | tee -a $(LOGS_DIR)/server.log
 	@echo
 
 run: prerun build
-	( ./build/game 2>&1 | tee -a $(LOGS_DIR)/game.log ) > /dev/null & disown
-	./build/server 2>&1 | tee -a $(LOGS_DIR)/server.log
+	( $(BUILD_DIR)/game 2>&1 | tee -a $(LOGS_DIR)/game.log ) > /dev/null & disown
+	$(BUILD_DIR)/server 2>&1 | tee -a $(LOGS_DIR)/server.log
 	@echo
 
 run_with_logs: prerun build
-	./build/game & disown
-	./build/server
+	$(BUILD_DIR)/game & disown
+	$(BUILD_DIR)/server
 	@echo
