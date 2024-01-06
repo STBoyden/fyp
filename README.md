@@ -1,19 +1,27 @@
-# University final year project
+# Final year project
 
-The task for my final year project is a multiplayer networked game. Progress (b)logs can be found [here](https://blog.stboyden.com).
+## Building
 
-I have decided to implement the project using Rust or Go -- though the specifics of implementation are not yet solid and the framework or engine I will use to create the game.
+The process for *NIX oses and Windows differs slightly. For both, Go 1.21+ is required.
 
-I am leaning towards Go.
+The Python build script is compatible with all OSes, but `make` should be preferred for \*NIX-based operating systems.
 
-## Rust
+### \*NIX (Linux and macOS)
 
-A list for Rust is found on https://arewegameyet.rs. The options are:
+To build, use `make`:
 
-- Bevy - probably the most mature option.
-- Ambient - never heard of it, but is specifically targeted towards multiplayer networked games, but impressions from the site seem to lean towards it being batteries included, and therefore may effect the amount of "points" rewarded for the actual networking implementation.
-- Amethyst - data driven, may be useful for a networked game.
+```bash
+make build          # builds both the server and the game
+make run            # runs the server and a single game instance
+make run_with_logs  # same as above, but prints the logs to stdout and stderr
+```
 
-## Go
+### Windows
 
-There are a few good options listed on this website https://gamefromscratch.com/game-development-in-the-go-programming-language.
+To build, use a Python version 3.10+:
+
+```powershell
+python.exe .\build.py build           # builds both the server and the game
+python.exe .\build.py run             # runs the server and a single game instance
+python.exe .\build.py run_with_logs   # same as above, but prints the logs to stdout and stderr
+```
