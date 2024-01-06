@@ -39,3 +39,7 @@ run: prerun build
 	./build/server 2>&1 | tee -a $(LOGS_DIR)/server.log
 	@echo
 
+run_with_logs: prerun build
+	./build/game & disown
+	./build/server
+	@echo
