@@ -13,6 +13,10 @@ import (
 
 var log = logging.NewServer()
 
+var tcpConnections map[net.Addr]net.Conn
+var udpConnections map[net.Addr]net.Conn
+
+// We use this later in the main function to run the UDP and TCP handlers parallel.
 func makeParallel(functions ...func()) {
 	var group sync.WaitGroup
 	group.Add(len(functions))
@@ -64,6 +68,8 @@ func main() {
 	}
 	correctionSocketFunc := func() {
 		log.Infof("Started error correction socket (TCP) on %d\n", tcpPort)
+
+		// Async closure to handle the closing of the socket, waits for the gracefulCloseChannel, and exits when it receives anything
 		go func() {
 			<-gracefulCloseChannel
 			log.Infof("[TCP] Stopping...")
@@ -75,6 +81,7 @@ func main() {
 
 			if err != nil {
 				if strings.Contains(err.Error(), "use of closed network connection") {
+					log.Warn("[TCP] Closed")
 					break
 				}
 
@@ -82,12 +89,13 @@ func main() {
 				continue
 			}
 
-			log.Infof("[TCP] Connected with %s\n", conn.RemoteAddr())
+			log.Infof("[TCP] Connected with %s", conn.RemoteAddr())
 
 			conn.Write([]byte("Hello!"))
 		}
 	}
 
+	// Handle UDP connections to the server.
 	gameSocket, err := net.ListenUDP("udp",
 		&net.UDPAddr{IP: net.IPv4(0, 0, 0, 0), Port: udpPort},
 	)
@@ -97,6 +105,8 @@ func main() {
 	}
 	gameSocketFunc := func() {
 		log.Infof("Started game data socket (UDP) on %d\n", udpPort)
+
+		// Async closure to handle the closing of the socket, waits for the gracefulCloseChannel, and exits when it receives anything
 		go func() {
 			<-gracefulCloseChannel
 			log.Infof("[UDP] Stopping...")
@@ -109,6 +119,8 @@ func main() {
 			_, addr, err := gameSocket.ReadFrom(buf)
 			if err != nil {
 				if strings.Contains(err.Error(), "use of closed network connection") {
+					log.Warn("[UDP] Closed")
+
 					break
 				}
 
