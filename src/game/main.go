@@ -1,28 +1,49 @@
 package main
 
 import (
+	"os"
+
+	"github.com/STBoyden/fyp/src/game/game"
 	logging "github.com/STBoyden/fyp/src/utils"
-	ebiten "github.com/hajimehoshi/ebiten/v2"
+
+	"github.com/hajimehoshi/ebiten/v2"
 )
 
-type Game struct{}
-
-func (g *Game) Update() error {
-	return nil
-}
-
-func (g *Game) Draw(screen *ebiten.Image) {}
-
-func (g *Game) Layout(outsideWidth int, outsideHeight int) (screenWidth int, screenHeight int) {
-	return outsideWidth, outsideHeight
-}
+var log = logging.NewClient()
 
 func main() {
-	game := &Game{}
-	log := logging.NewClient()
+	tcpPort := ""
+	udpPort := ""
+	serverAddress := ""
+
+	if _p, isPresent := os.LookupEnv("SERVER_ADDRESS"); isPresent {
+		serverAddress = _p
+	} else {
+		log.Error("SERVER_ADDRESS environment variable not found")
+		os.Exit(1)
+	}
+
+	if _p, isPresent := os.LookupEnv("SERVER_TCP_PORT"); isPresent {
+		tcpPort = _p
+	} else {
+		log.Error("SERVER_TCP_PORT environment variable not found")
+		os.Exit(1)
+	}
+
+	if _p, isPresent := os.LookupEnv("SERVER_UDP_PORT"); isPresent {
+		udpPort = _p
+	} else {
+		log.Error("SERVER_UDP_PORT environment variable not found")
+		os.Exit(1)
+	}
+
+	game := game.New(serverAddress, tcpPort, udpPort, log)
+	defer game.Delete()
 
 	ebiten.SetWindowSize(1600, 900)
 	ebiten.SetWindowTitle("Final Year Project")
+	ebiten.SetWindowResizingMode(ebiten.WindowResizingModeEnabled)
+	ebiten.SetFullscreen(true)
 
 	log.Info("Starting game...")
 	if err := ebiten.RunGame(game); err != nil {
