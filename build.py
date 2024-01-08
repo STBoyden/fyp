@@ -80,7 +80,6 @@ def run_game(skip_prerun=False, wait=True, pipe_logs=True):
     build_game()
 
     game_bin = os.path.normpath(f"{BUILD_DIR}/game{ext}")
-
     process = None
 
     print("Running game...")
@@ -95,37 +94,41 @@ def run_game(skip_prerun=False, wait=True, pipe_logs=True):
         process.wait()
 
 
-def run_server(skip_prerun=False, pipe_logs=True):
+def run_server(skip_prerun=False, wait=True, pipe_logs=True):
     if not skip_prerun:
         prerun()
 
     build_server()
 
     server_bin = os.path.normpath(f"{BUILD_DIR}/server{ext}")
+    process = None
 
     print("Running server...")
     if pipe_logs:
         log_file = os.path.normpath(f"{LOGS_DIR}/server.log")
         with open(log_file, "+w") as log_file:
-            subprocess.run([server_bin], stdout=log_file, stderr=log_file)
+            process = subprocess.Popen([server_bin], stdout=log_file, stderr=log_file)
     else:
-        subprocess.run([server_bin])
+        process = subprocess.Popen([server_bin])
+
+    if wait:
+        process.wait()
 
 
 def run():
     prerun()
     build()
 
-    run_game(skip_prerun=True, wait=False)
-    run_server(skip_prerun=True)
+    run_server(skip_prerun=True, wait=False)
+    run_game(skip_prerun=True)
 
 
 def run_with_logs():
     prerun()
     build()
 
-    run_game(skip_prerun=True, wait=False, pipe_logs=False)
-    run_server(skip_prerun=True, pipe_logs=False)
+    run_server(skip_prerun=True, wait=False, pipe_logs=False)
+    run_game(skip_prerun=True, pipe_logs=False)
     print()
 
 
@@ -135,6 +138,10 @@ if len(sys.argv) > 1:
     match action:
         case "build":
             build()
+        case "build_game":
+            build_game()
+        case "build_server":
+            build_server()
         case "run":
             run()
         case "run_game":
@@ -150,4 +157,3 @@ if len(sys.argv) > 1:
             exit(1)
 else:
     build()
-    # run()
