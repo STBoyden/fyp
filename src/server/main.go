@@ -5,16 +5,13 @@ import (
 	"os"
 	"os/signal"
 	"strconv"
-	"strings"
 	"sync"
 
+	"github.com/STBoyden/fyp/src/server/handlers"
 	logging "github.com/STBoyden/fyp/src/utils"
 )
 
 var log = logging.NewServer()
-
-var tcpConnections map[net.Addr]net.Conn
-var udpConnections map[net.Addr]net.Conn
 
 // We use this later in the main function to run the UDP and TCP handlers parallel.
 func makeParallel(functions ...func()) {
@@ -66,71 +63,20 @@ func main() {
 		log.Errorf("Could not start TCP socket listener: %s", err.Error())
 		return
 	}
-	correctionSocketFunc := func() {
-		log.Infof("Started error correction socket (TCP) on %d\n", tcpPort)
 
-		// Async closure to handle the closing of the socket, waits for the gracefulCloseChannel, and exits when it receives anything
-		go func() {
-			<-gracefulCloseChannel
-			log.Infof("[TCP] Stopping...")
-			errorCorrectionSocket.Close()
-		}()
-
-		for {
-			conn, err := errorCorrectionSocket.Accept()
-
-			if err != nil {
-				if strings.Contains(err.Error(), "use of closed network connection") {
-					log.Warn("[TCP] Closed")
-					break
-				}
-
-				log.Errorf("[TCP] Could not receive on TCP socket: %s", err.Error())
-				continue
-			}
-
-			log.Infof("[TCP] Connected with %s", conn.RemoteAddr())
-
-			conn.Write([]byte("Hello!"))
-		}
-	}
+	errorCorrectionHandler := handlers.NewErrorCorrectionHandler(log, errorCorrectionSocket, tcpPort, gracefulCloseChannel)
+	correctionSocketFunc := errorCorrectionHandler.Handle
 
 	// Handle UDP connections to the server.
-	gameSocket, err := net.ListenUDP("udp",
-		&net.UDPAddr{IP: net.IPv4(0, 0, 0, 0), Port: udpPort},
-	)
+	addr := &net.UDPAddr{IP: net.IPv4(0, 0, 0, 0), Port: udpPort}
+	gameSocket, err := net.ListenUDP("udp", addr)
 	if err != nil {
-		log.Errorf("Could not start UDP socket listener: %s", err.Error())
+		log.Errorf("Could not start UDP socket: %s", err.Error())
 		return
 	}
-	gameSocketFunc := func() {
-		log.Infof("Started game data socket (UDP) on %d\n", udpPort)
 
-		// Async closure to handle the closing of the socket, waits for the gracefulCloseChannel, and exits when it receives anything
-		go func() {
-			<-gracefulCloseChannel
-			log.Infof("[UDP] Stopping...")
-			gameSocket.Close()
-		}()
-
-		buf := make([]byte, 2048)
-
-		for {
-			_, addr, err := gameSocket.ReadFrom(buf)
-			if err != nil {
-				if strings.Contains(err.Error(), "use of closed network connection") {
-					log.Warn("[UDP] Closed")
-
-					break
-				}
-
-				log.Errorf("[UDP] %s\n", err)
-				continue
-			}
-
-			log.Infof("[UDP] Received data from %s: %s\n", addr, string(buf))
-		}
-	}
+	gameLogicHandler := handlers.NewGameHandler(log, gameSocket, addr, udpPort, gracefulCloseChannel)
+	gameSocketFunc := gameLogicHandler.Handle
 
 	signalChannel := make(chan os.Signal, 2)
 	signal.Notify(signalChannel, os.Interrupt)

@@ -38,7 +38,6 @@ func main() {
 	}
 
 	game := game.New(serverAddress, tcpPort, udpPort, log)
-	defer game.Delete()
 
 	ebiten.SetWindowSize(1600, 900)
 	ebiten.SetWindowTitle("Final Year Project")
@@ -50,5 +49,6 @@ func main() {
 		log.Error(err.Error())
 	}
 
+	game.Delete()
 	log.Info("Exited")
 }

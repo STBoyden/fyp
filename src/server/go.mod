@@ -6,4 +6,7 @@ replace github.com/STBoyden/fyp/utils => ../utils
 
 require github.com/STBoyden/fyp/src/utils v0.0.0-20240106154139-acf2a002cafc
 
-require github.com/TwiN/go-color v1.4.1 // indirect
+require (
+	github.com/TwiN/go-color v1.4.1 // indirect
+	github.com/phakornkiong/go-pattern-match v1.1.0
+)
