@@ -38,7 +38,7 @@ run_server: prerun build_server
 
 run: prerun build
 	( $(BUILD_DIR)/server 2>&1 | tee -a $(LOGS_DIR)/server.log ) > /dev/null & disown
-	$(BUILD_DIR)/game 2>&1 | tee -a $(LOGS_DIR)/game.log
+	($(BUILD_DIR)/game 2>&1 | tee -a $(LOGS_DIR)/game.log) > /dev/null
 	@echo
 
 run_with_logs: prerun build
