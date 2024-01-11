@@ -83,17 +83,22 @@ func (gh *GameHandler) Handle() {
 						}
 						gh.connectionsMutex.Lock()
 
+						source := clientConn.RemoteAddr().String()
+
 						// already readied - not needed again
-						if gh.connections[clientConn.RemoteAddr().String()] != nil {
+						if gh.connections[source] != nil {
 							gh.connectionsMutex.Unlock()
 							return nil
 						}
 
 						// connection is now ready
-						gh.connections[clientConn.RemoteAddr().String()] = clientConn
+						gh.connections[source] = clientConn
 						gh.connectionsMutex.Unlock()
 
+						gh.logger.Infof("[UDP] Connected to client's UDP socket at %s", source)
+
 						//TODO Logic with sending the game updates and logic here.
+						gh.logger.Infof("[UDP] Sending 'hello' message to client at %s", source)
 						size, err = clientConn.Write([]byte("Hello from server!"))
 						if err != nil {
 							gh.logger.Errorf("[UDP] Couldn't send to client: %s", err.Error())
