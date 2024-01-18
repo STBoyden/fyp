@@ -22,12 +22,12 @@ GAME_SRC = os.path.normpath(f"{SRC_DIR}/game")
 SERVER_SRC = os.path.normpath(f"{SRC_DIR}/server")
 
 # server environment variables
-SERVER_ENV = {}
+SERVER_ENV = os.environ.copy()
 SERVER_ENV["TCP_PORT"] = "8080"
 SERVER_ENV["UDP_PORT"] = "8081"
 
 # game environment variables
-CLIENT_ENV = {}
+CLIENT_ENV = os.environ.copy()
 CLIENT_ENV["SERVER_ADDRESS"] = "127.0.0.1"
 CLIENT_ENV["SERVER_TCP_PORT"] = SERVER_ENV["TCP_PORT"]
 CLIENT_ENV["SERVER_UDP_PORT"] = SERVER_ENV["UDP_PORT"]
