@@ -4,6 +4,17 @@ ROOT := $(shell pwd)
 LOGS_DIR := $(ROOT)/logs/$(DATE)/$(TIME)
 BUILD_DIR := $(ROOT)/build
 
+# server environment variables
+TCP_PORT := 8080
+UDP_PORT := 8081
+SERVER_ENV := TCP_PORT=${TCP_PORT} UDP_PORT=${UDP_PORT}
+
+# game environment variables
+SERVER_ADDRESS := 127.0.0.1
+SERVER_TCP_PORT := $(TCP_PORT)
+SERVER_UDP_PORT := $(UDP_PORT)
+CLIENT_ENV := SERVER_ADDRESS=${SERVER_ADDRESS} SERVER_TCP_PORT=${SERVER_TCP_PORT} SERVER_UDP_PORT=${SERVER_UDP_PORT}
+
 .PHONY: all
 
 all: clean build
@@ -29,19 +40,19 @@ build_server: prebuild
 build: build_game build_server
 
 run_game: prerun build_game
-	$(BUILD_DIR)/game 2>&1 | tee -a $(LOGS_DIR)/game.log
+	$(CLIENT_ENV) $(BUILD_DIR)/game 2>&1 | tee -a $(LOGS_DIR)/game.log
 	@echo
 
 run_server: prerun build_server
-	$(BUILD_DIR)/server 2>&1 | tee -a $(LOGS_DIR)/server.log
+	$(SERVER_ENV) $(BUILD_DIR)/server 2>&1 | tee -a $(LOGS_DIR)/server.log
 	@echo
 
 run: prerun build
-	( $(BUILD_DIR)/server 2>&1 | tee -a $(LOGS_DIR)/server.log ) > /dev/null & disown
-	($(BUILD_DIR)/game 2>&1 | tee -a $(LOGS_DIR)/game.log) > /dev/null
+	($(SERVER_ENV) $(BUILD_DIR)/server 2>&1 | tee -a $(LOGS_DIR)/server.log) > /dev/null & disown
+	($(CLIENT_ENV) $(BUILD_DIR)/game 2>&1 | tee -a $(LOGS_DIR)/game.log) > /dev/null
 	@echo
 
 run_with_logs: prerun build
-	$(BUILD_DIR)/server & disown
-	$(BUILD_DIR)/game
+	$(SERVER_ENV) $(BUILD_DIR)/server & disown
+	$(CLIENT_ENV) $(BUILD_DIR)/game
 	@echo
