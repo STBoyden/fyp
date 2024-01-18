@@ -3,8 +3,8 @@ package main
 import (
 	"os"
 
+	"github.com/STBoyden/fyp/src/common/utils/logging"
 	"github.com/STBoyden/fyp/src/game/game"
-	logging "github.com/STBoyden/fyp/src/utils"
 
 	"github.com/hajimehoshi/ebiten/v2"
 )

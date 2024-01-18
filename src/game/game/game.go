@@ -4,7 +4,7 @@ import (
 	"net"
 	"strings"
 
-	logging "github.com/STBoyden/fyp/src/utils"
+	"github.com/STBoyden/fyp/src/common/utils/logging"
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 )

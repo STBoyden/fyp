@@ -5,7 +5,7 @@ import (
 	"strings"
 	"sync"
 
-	logging "github.com/STBoyden/fyp/src/utils"
+	"github.com/STBoyden/fyp/src/common/utils/logging"
 )
 
 type ErrorCorrectionHandler struct {

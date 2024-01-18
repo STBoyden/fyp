@@ -1,13 +1,15 @@
 module github.com/STBoyden/fyp/src/game
 
-go 1.21.1
+go 1.21.0
 
 require (
-	github.com/STBoyden/fyp/src/utils v0.0.0-00010101000000-000000000000
+	github.com/STBoyden/fyp/src/common/utils v0.0.0-00010101000000-000000000000
 	github.com/hajimehoshi/ebiten/v2 v2.6.3
 )
 
-replace github.com/STBoyden/fyp/src/utils => ../utils
+replace github.com/STBoyden/fyp/src/common/utils => ../common/utils
+
+replace github.com/SToyden/fyp/src/common/game-state => ../common/game-state
 
 require (
 	github.com/TwiN/go-color v1.4.1 // indirect
