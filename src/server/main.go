@@ -7,8 +7,8 @@ import (
 	"strconv"
 	"sync"
 
-	"github.com/STBoyden/fyp/src/common/utils/logging"
-	"github.com/STBoyden/fyp/src/server/handlers"
+	"fyp/common/utils/logging"
+	"fyp/src/server/handlers"
 )
 
 var log = logging.NewServer()

@@ -3,8 +3,8 @@ package main
 import (
 	"os"
 
-	"github.com/STBoyden/fyp/src/common/utils/logging"
-	"github.com/STBoyden/fyp/src/game/game"
+	"fyp/common/utils/logging"
+	"fyp/src/game/net"
 
 	"github.com/hajimehoshi/ebiten/v2"
 )
@@ -37,7 +37,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	game := game.New(serverAddress, tcpPort, udpPort, log)
+	game := net.New(serverAddress, tcpPort, udpPort, log)
 
 	ebiten.SetWindowSize(1600, 900)
 	ebiten.SetWindowTitle("Final Year Project")

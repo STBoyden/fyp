@@ -1,8 +1,0 @@
-go 1.21.1
-
-use (
-	./src/common/game-state
-	./src/common/utils
-	./src/game
-	./src/server
-)

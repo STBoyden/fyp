@@ -1,15 +1,16 @@
-package game
+package net
 
 import (
 	"net"
 	"strings"
 
-	"github.com/STBoyden/fyp/src/common/utils/logging"
+	"fyp/common/utils/logging"
+
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 )
 
-type Game struct {
+type Net struct {
 	initialised bool
 	tcpPort     string
 	udpPort     string
@@ -28,8 +29,8 @@ type Game struct {
 	message string
 }
 
-func New(serverAddress, tcpPort, udpPort string, logger *logging.Logger) *Game {
-	return &Game{
+func New(serverAddress string, tcpPort string, udpPort string, logger *logging.Logger) *Net {
+	return &Net{
 		initialised:         false,
 		serverAddress:       serverAddress,
 		tcpPort:             tcpPort,
@@ -39,7 +40,7 @@ func New(serverAddress, tcpPort, udpPort string, logger *logging.Logger) *Game {
 	}
 }
 
-func (g *Game) init() error {
+func (g *Net) init() error {
 	if !g.tcpIsConnected {
 		address := g.serverAddress + ":" + g.tcpPort
 
@@ -106,7 +107,7 @@ func (g *Game) init() error {
 	return nil
 }
 
-func (g *Game) Update() error {
+func (g *Net) Update() error {
 	if !g.initialised {
 		g.init()
 	}
@@ -149,15 +150,15 @@ func (g *Game) Update() error {
 	return nil
 }
 
-func (g *Game) Draw(screen *ebiten.Image) {
+func (g *Net) Draw(screen *ebiten.Image) {
 	ebitenutil.DebugPrint(screen, g.message)
 }
 
-func (g *Game) Layout(outsideWidth int, outsideHeight int) (screenWidth int, screenHeight int) {
+func (g *Net) Layout(outsideWidth int, outsideHeight int) (screenWidth int, screenHeight int) {
 	return outsideWidth / 2, outsideHeight / 2
 }
 
-func (g *Game) Delete() error {
+func (g *Net) Delete() error {
 	if g.tcpIsConnected {
 		g.tcpConn.Close()
 	}

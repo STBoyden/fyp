@@ -45,8 +45,9 @@ def prebuild():
         os.makedirs(BUILD_DIR)
         print(f"[PREBUILD] Created '{BUILD_DIR}'")
 
-    print("[PREBUILD] Running 'go work sync'")
-    subprocess.run("go work sync".split())
+    command = "go mod tidy"
+    print(f"[PREBUILD] Running '{command}'")
+    subprocess.run(command.split())
 
 
 def prerun():
@@ -58,8 +59,6 @@ def prerun():
 def build_game():
     prebuild()
 
-    print("[BUILD_GAME] Running 'go mod tidy'")
-    subprocess.run("go mod tidy".split(), cwd=GAME_SRC)
     print(
         f"[BUILD_GAME] Running 'go build -C {GAME_SRC} -o {BUILD_DIR}/game{ext} main.go'"
     )
@@ -68,9 +67,7 @@ def build_game():
 
 def build_server():
     prebuild()
-
-    print("[BUILD_SERVER] Running 'go mod tidy'")
-    subprocess.run("go mod tidy".split(), cwd=SERVER_SRC)
+    
     print(
         f"[BUILD_SERVER] Running 'go build -C {SERVER_SRC} -o {BUILD_DIR}/server{ext} main.go'"
     )

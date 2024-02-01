@@ -9,7 +9,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/STBoyden/fyp/src/common/utils/logging"
+	"fyp/common/utils/logging"
 
 	"github.com/phakornkiong/go-pattern-match/pattern"
 )
