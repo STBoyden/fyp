@@ -1,11 +1,10 @@
 package handlers
 
 import (
+	"fyp/common/utils/logging"
 	"net"
 	"strings"
 	"sync"
-
-	"fyp/common/utils/logging"
 )
 
 type ErrorCorrectionHandler struct {
@@ -44,7 +43,6 @@ func (ec *ErrorCorrectionHandler) Handle() {
 	go func() {
 		for {
 			conn, err := ec.socket.Accept()
-
 			if err != nil {
 				if strings.Contains(err.Error(), "use of closed network connection") {
 					ec.logger.Warn("[TCP] Closed")

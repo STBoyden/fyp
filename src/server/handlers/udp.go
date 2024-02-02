@@ -2,14 +2,13 @@ package handlers
 
 import (
 	"errors"
+	"fyp/common/utils/logging"
 	"net"
 	"net/netip"
 	"regexp"
 	"strconv"
 	"strings"
 	"sync"
-
-	"fyp/common/utils/logging"
 
 	"github.com/phakornkiong/go-pattern-match/pattern"
 )
@@ -97,7 +96,7 @@ func (gh *GameHandler) Handle() {
 
 						gh.logger.Infof("[UDP] Connected to client's UDP socket at %s", source)
 
-						//TODO Logic with sending the game updates and logic here.
+						// TODO Logic with sending the game updates and logic here.
 						gh.logger.Infof("[UDP] Sending 'hello' message to client at %s", source)
 						size, err = clientConn.Write([]byte("Hello from server!"))
 						if err != nil {
