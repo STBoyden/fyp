@@ -4,6 +4,7 @@ import os
 import shutil
 import subprocess
 import sys
+import platform
 
 from datetime import date, datetime
 
@@ -20,6 +21,10 @@ BUILD_DIR = os.path.normpath(f"{ROOT}/build")
 SRC_DIR = os.path.normpath(f"{ROOT}/src")
 GAME_SRC = os.path.normpath(f"{SRC_DIR}/game")
 SERVER_SRC = os.path.normpath(f"{SRC_DIR}/server")
+
+# if we're on wsl2, then we have to manually make sure that the GOOS environment variable is set to Linux
+if platform.uname().release.endswith("microsoft-standard-WSL2"):
+    os.environ["GOOS"] = "linux"
 
 # server environment variables
 SERVER_ENV = os.environ.copy()
