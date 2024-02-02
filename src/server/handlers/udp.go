@@ -48,7 +48,7 @@ func (gh *GameHandler) Handle() {
 	buffer := make([]byte, 2048)
 
 	var port int
-	var clientIp net.IP
+	var clientIP net.IP
 	var clientAddress net.UDPAddr
 
 	for {
@@ -116,8 +116,8 @@ func (gh *GameHandler) Handle() {
 						}
 
 						portColonIndex := strings.LastIndex(addr.String(), ":")
-						clientIp = net.ParseIP(addr.String()[:portColonIndex-1])
-						clientAddress = net.UDPAddr{IP: clientIp, Port: port}
+						clientIP = net.ParseIP(addr.String()[:portColonIndex-1])
+						clientAddress = net.UDPAddr{IP: clientIP, Port: port}
 
 						return nil
 					}).

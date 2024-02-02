@@ -67,13 +67,14 @@ func (ec *ErrorCorrectionHandler) Handle() {
 		}
 
 		for id, conn := range ec.connections {
-			if _, err := conn.Write([]byte("ping")); err != nil {
-				ec.connectionsMutex.Lock()
-				delete(ec.connections, id)
-				ec.connectionsMutex.Unlock()
-				ec.logger.Infof("[TCP] Disconnected from %s", id)
+			if _, err := conn.Write([]byte("ping")); err == nil {
 				continue
 			}
+
+			ec.connectionsMutex.Lock()
+			delete(ec.connections, id)
+			ec.connectionsMutex.Unlock()
+			ec.logger.Infof("[TCP] Disconnected from %s", id)
 
 			// TODO Handle sending error corrections to client here
 		}

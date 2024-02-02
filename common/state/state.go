@@ -1,3 +1,3 @@
-package game_state
+package state
 
 type State struct{}

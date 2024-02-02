@@ -18,7 +18,7 @@ const (
 	WARN
 	ERROR
 	FATAL
-	__LOG_LEVEL_AMOUNT
+	_LogLevelAmount
 )
 
 var colours = [...]string{
@@ -41,7 +41,7 @@ func getColourForLevel(level logLevel) string {
 func (level logLevel) String() string {
 	strings := [...]string{"TRACE", "DEBUG", "INFO", "WARN", "ERROR", "FATAL"}
 
-	if level < TRACE || level >= __LOG_LEVEL_AMOUNT {
+	if level < TRACE || level >= _LogLevelAmount {
 		return "UNKNOWN"
 	}
 
