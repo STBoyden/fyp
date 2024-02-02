@@ -29,11 +29,13 @@ lint:
     - osv-scanner@1.6.2
     - prettier@3.2.4
     - ruff@0.2.0
-    - trufflehog@3.66.3
-actions:
   disabled:
-    - trunk-announce
-    - trunk-check-pre-push
-    - trunk-fmt-pre-commit
+    - trufflehog
+actions:
+  # disabled:
   enabled:
+    - trunk-fmt-pre-commit
+    - trunk-check-pre-push
+    - go-mod-tidy
+    - trunk-announce
     - trunk-upgrade-available
