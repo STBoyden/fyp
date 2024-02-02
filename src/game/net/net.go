@@ -1,12 +1,11 @@
 package net
 
 import (
+	"fyp/common/utils/logging"
 	"net"
 	"strings"
 
-	"fyp/common/utils/logging"
-
-	"github.com/hajimehoshi/ebiten/v2"
+	ebiten "github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 )
 
@@ -29,7 +28,9 @@ type Net struct {
 	message string
 }
 
-func New(serverAddress string, tcpPort string, udpPort string, logger *logging.Logger) *Net {
+func New(
+	serverAddress string, tcpPort string, udpPort string, logger *logging.Logger,
+) *Net {
 	return &Net{
 		initialised:         false,
 		serverAddress:       serverAddress,
@@ -109,7 +110,10 @@ func (g *Net) init() error {
 
 func (g *Net) Update() error {
 	if !g.initialised {
-		g.init()
+		err := g.init()
+		if err != nil {
+			return err
+		}
 	}
 
 	go func() {

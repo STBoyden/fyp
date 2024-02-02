@@ -1,15 +1,14 @@
 package main
 
 import (
+	"fyp/common/utils/logging"
+	"fyp/src/server/handlers"
 	"net"
 	"os"
 	"os/signal"
 	"strconv"
 	"sync"
 	"syscall"
-
-	"fyp/common/utils/logging"
-	"fyp/src/server/handlers"
 )
 
 var log = logging.NewServer()

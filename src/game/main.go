@@ -1,12 +1,11 @@
 package main
 
 import (
-	"os"
-
 	"fyp/common/utils/logging"
 	"fyp/src/game/net"
+	"os"
 
-	"github.com/hajimehoshi/ebiten/v2"
+	ebiten "github.com/hajimehoshi/ebiten/v2"
 )
 
 var log = logging.NewClient()
@@ -49,6 +48,6 @@ func main() {
 		log.Error(err.Error())
 	}
 
-	game.Delete()
+	_ = game.Delete()
 	log.Info("Exited")
 }

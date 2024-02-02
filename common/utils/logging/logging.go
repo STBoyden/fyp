@@ -53,11 +53,15 @@ type Logger struct {
 }
 
 func NewClient() *Logger {
-	return &Logger{log.New(os.Stdout, color.Ize(color.Black, color.Ize(color.CyanBackground, ":: CLIENT ::"))+" ", log.LstdFlags|log.LUTC)}
+	return &Logger{
+		log.New(os.Stdout, color.Ize(color.Black, color.Ize(color.CyanBackground, ":: CLIENT ::"))+" ", log.LstdFlags|log.LUTC),
+	}
 }
 
 func NewServer() *Logger {
-	return &Logger{log.New(os.Stdout, color.Ize(color.Black, color.Ize(color.GreenBackground, ":: SERVER ::"))+" ", log.LstdFlags|log.LUTC)}
+	return &Logger{
+		log.New(os.Stdout, color.Ize(color.Black, color.Ize(color.GreenBackground, ":: SERVER ::"))+" ", log.LstdFlags|log.LUTC),
+	}
 }
 
 func (l *Logger) log(output io.Writer, level logLevel, format string, v ...any) {
@@ -79,6 +83,7 @@ func (l *Logger) Trace(message string) {
 func (l *Logger) Debugf(format string, v ...any) {
 	l.log(os.Stdout, DEBUG, format, v...)
 }
+
 func (l *Logger) Debug(message string) {
 	l.log(os.Stdout, DEBUG, message)
 }

@@ -1,12 +1,11 @@
 #!/usr/bin/env python3
 
 import os
+import platform
 import shutil
 import signal
 import subprocess
 import sys
-import platform
-
 from datetime import date, datetime
 
 if __name__ != "__main__":
@@ -138,6 +137,8 @@ def run_server(
         process.wait()
     else:
         return process
+
+    return
 
 
 def run():

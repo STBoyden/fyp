@@ -2,7 +2,7 @@
 
 ## Building
 
-The process for *NIX oses and Windows differs slightly. For both, Go 1.21+ is required.
+The process for \*NIX oses and Windows differs slightly. For both, Go 1.21+ is required.
 
 The Python build script is compatible with all OSes, but `make` should be preferred for \*NIX-based operating systems.
 
