@@ -2,6 +2,7 @@
 
 import os
 import shutil
+import signal
 import subprocess
 import sys
 import platform
@@ -61,8 +62,9 @@ def prerun():
         print(f"[PRERUN] Created '{LOGS_DIR}'")
 
 
-def build_game():
-    prebuild()
+def build_game(skip_prebuild=False):
+    if not skip_prebuild:
+        prebuild()
 
     print(
         f"[BUILD_GAME] Running 'go build -C {GAME_SRC} -o {BUILD_DIR}/game{ext} main.go'"
@@ -70,9 +72,10 @@ def build_game():
     subprocess.run(f"go build -C {GAME_SRC} -o {BUILD_DIR}/game{ext} main.go".split())
 
 
-def build_server():
-    prebuild()
-    
+def build_server(skip_prebuild=False):
+    if not skip_prebuild:
+        prebuild()
+
     print(
         f"[BUILD_SERVER] Running 'go build -C {SERVER_SRC} -o {BUILD_DIR}/server{ext} main.go'"
     )
@@ -82,15 +85,16 @@ def build_server():
 
 
 def build():
-    build_game()
-    build_server()
+    prebuild()
+    build_game(skip_prebuild=True)
+    build_server(skip_prebuild=True)
 
 
-def run_game(skip_prerun=False, wait=True, pipe_logs=True):
+def run_game(skip_prerun=False, wait_for_exit=True, pipe_logs=True, skip_build=False):
     if not skip_prerun:
         prerun()
-
-    build_game()
+    if not skip_build:
+        build_game()
 
     game_bin = os.path.normpath(f"{BUILD_DIR}/game{ext}")
     process = None
@@ -105,15 +109,17 @@ def run_game(skip_prerun=False, wait=True, pipe_logs=True):
     else:
         process = subprocess.Popen([game_bin], env=CLIENT_ENV)
 
-    if wait:
+    if wait_for_exit:
         process.wait()
 
 
-def run_server(skip_prerun=False, wait=True, pipe_logs=True):
+def run_server(
+    skip_prerun=False, wait_for_exit=True, pipe_logs=True, skip_build=False
+) -> subprocess.Popen[bytes] | None:
     if not skip_prerun:
         prerun()
-
-    build_server()
+    if not skip_build:
+        build_server()
 
     server_bin = os.path.normpath(f"{BUILD_DIR}/server{ext}")
     process = None
@@ -128,24 +134,39 @@ def run_server(skip_prerun=False, wait=True, pipe_logs=True):
     else:
         process = subprocess.Popen([server_bin], env=SERVER_ENV)
 
-    if wait:
+    if wait_for_exit:
         process.wait()
+    else:
+        return process
 
 
 def run():
     prerun()
     build()
 
-    run_server(skip_prerun=True, wait=False)
-    run_game(skip_prerun=True)
+    server_process = run_server(skip_prerun=True, wait_for_exit=False, skip_build=True)
+    run_game(skip_prerun=True, skip_build=True)
+
+    if server_process and os.name != "nt":
+        server_process.send_signal(signal.SIGINT)
+    elif os.name == "nt":
+        server_process.kill()
 
 
 def run_with_logs():
     prerun()
     build()
 
-    run_server(skip_prerun=True, wait=False, pipe_logs=False)
-    run_game(skip_prerun=True, pipe_logs=False)
+    server_process = run_server(
+        skip_prerun=True, wait_for_exit=False, pipe_logs=False, skip_build=True
+    )
+    run_game(skip_prerun=True, pipe_logs=False, skip_build=True)
+
+    if server_process and os.name != "nt":
+        server_process.send_signal(signal.SIGINT)
+    elif os.name == "nt":
+        server_process.kill()
+
     print()
 
 

@@ -6,6 +6,7 @@ import (
 	"os/signal"
 	"strconv"
 	"sync"
+	"syscall"
 
 	"fyp/common/utils/logging"
 	"fyp/src/server/handlers"
@@ -79,13 +80,13 @@ func main() {
 	gameSocketFunc := gameLogicHandler.Handle
 
 	signalChannel := make(chan os.Signal, 2)
-	signal.Notify(signalChannel, os.Interrupt)
+	signal.Notify(signalChannel, os.Interrupt, syscall.SIGTERM)
 	signalFunc := func() {
 		for s := range signalChannel {
-			if s == os.Interrupt {
+			if s == os.Interrupt || s == syscall.SIGTERM {
+				log.Infof("[SIGNAL HANDLER] Received %s signal, gracefully shutting down", s.String())
 				gracefulCloseChannel <- struct{}{}
 				gracefulCloseChannel <- struct{}{}
-				log.Infof("[SIGNAL HANDLER] Received interrupt signal, gracefully shutting down")
 				break
 			}
 		}
