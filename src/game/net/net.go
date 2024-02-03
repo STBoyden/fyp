@@ -1,7 +1,9 @@
 package net
 
 import (
+	"fyp/common/state"
 	"fyp/common/utils/logging"
+	typedsockets "fyp/common/utils/net/typed-sockets"
 	"net"
 	"strings"
 
@@ -18,12 +20,12 @@ type Net struct {
 
 	id                  string
 	serverAddress       string
-	tcpConn             *net.TCPConn
+	tcpConn             *typedsockets.TCPTypedConnection[state.State]
 	tcpIsConnected      bool
-	udpConn             *net.UDPConn
+	udpConn             *typedsockets.UDPTypedConnection[state.State]
 	udpIsConnected      bool
 	udpCloseLoopChannel chan struct{}
-	rxUdpSocket         *net.UDPConn
+	rxUdpSocketConn     *typedsockets.UDPTypedConnection[state.State]
 
 	message string
 }
@@ -45,13 +47,13 @@ func (g *Net) init() error {
 	if !g.tcpIsConnected {
 		address := g.serverAddress + ":" + g.tcpPort
 
-		tcpServer, err := net.ResolveTCPAddr("tcp", address)
+		_, err := net.ResolveTCPAddr("tcp", address)
 		if err != nil {
 			g.logger.Errorf("Could not resolve TCP address: %s", err.Error())
 			return err
 		}
 
-		conn, err := net.DialTCP("tcp", nil, tcpServer)
+		conn, err := typedsockets.DialTCP[state.State](g.serverAddress, g.tcpPort)
 		if err != nil {
 			g.logger.Errorf("Could not connect to TCP socket: %s", err.Error())
 			return err
@@ -70,13 +72,13 @@ func (g *Net) init() error {
 	if !g.udpIsConnected {
 		address := g.serverAddress + ":" + g.udpPort
 
-		udpServer, err := net.ResolveUDPAddr("udp", address)
+		_, err := net.ResolveUDPAddr("udp", address)
 		if err != nil {
 			g.logger.Errorf("Could not resolve UDP address: %s", err.Error())
 			return err
 		}
 
-		conn, err := net.DialUDP("udp", nil, udpServer)
+		conn, err := typedsockets.DialUDP[state.State](g.serverAddress, g.udpPort)
 		if err != nil {
 			g.logger.Errorf("Could not connect to TCP socket: %s", err.Error())
 			return err
@@ -84,23 +86,29 @@ func (g *Net) init() error {
 
 		g.logger.Infof("Connected to server's UDP socket at %s", address)
 
-		socket, err := net.ListenUDP("udp", &net.UDPAddr{IP: net.IPv4(0, 0, 0, 0), Port: 0})
+		socket, err := typedsockets.NewTypedUDPSocketListener[state.State]("0")
 		if err != nil {
 			g.logger.Errorf("Could not start UDP socket: %s", err.Error())
 			return err
 		}
 
-		localAddress := socket.LocalAddr().String()
+		socketConn, err := socket.Accept()
+		if err != nil {
+			g.logger.Errorf("Could not start accepting on UDP socket: %s", err.Error())
+			return err
+		}
+
+		localAddress := socketConn.LocalAddr().String()
 		portColonIndex := strings.LastIndex(localAddress, ":")
 		portStr := localAddress[portColonIndex+1:]
 
-		_, err = conn.Write([]byte(portStr))
+		_, err = conn.Write(state.State{ClientUdpPort: portStr})
 		if err != nil {
 			g.logger.Errorf("Could not send port to server: %s", err.Error())
 			return err
 		}
 
-		g.rxUdpSocket = socket
+		g.rxUdpSocketConn = socketConn
 		g.udpConn = conn
 		g.udpIsConnected = true
 	}
@@ -119,13 +127,14 @@ func (g *Net) Update() error {
 	go func() {
 		<-g.udpCloseLoopChannel
 		g.logger.Infof("[UDP-RX] Stopping...")
-		g.rxUdpSocket.Close()
+		g.rxUdpSocketConn.Close()
 	}()
 
 	go func() {
-		buffer := make([]byte, 2024)
+		receivedState := state.EmptyState()
+
 		for {
-			if _, err := g.udpConn.Write([]byte("ready")); err != nil {
+			if _, err := g.udpConn.Write(state.State{ClientReady: true}); err != nil {
 				if strings.Contains(err.Error(), "connection refused") {
 					g.logger.Warnf("Exiting due to unavailable server: %s", err.Error())
 					break
@@ -135,7 +144,7 @@ func (g *Net) Update() error {
 				continue
 			}
 
-			size, _, err := g.rxUdpSocket.ReadFrom(buffer)
+			size, _, err := g.rxUdpSocketConn.ReadFrom(&receivedState)
 			if err != nil {
 				if strings.Contains(err.Error(), "use of closed network connection") {
 					g.logger.Warn("[UDP-RX] Closed")
@@ -145,9 +154,8 @@ func (g *Net) Update() error {
 				continue
 			}
 
-			received := string(buffer[:size])
-			g.logger.Infof("[UDP-RX] Received %d bytes from server: %s", size, received)
-			g.message = received
+			g.logger.Infof("[UDP-RX] Received %d bytes from server: %s", size, receivedState)
+			g.message = receivedState.String()
 		}
 	}()
 

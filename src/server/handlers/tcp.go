@@ -1,7 +1,9 @@
 package handlers
 
 import (
+	"fyp/common/state"
 	"fyp/common/utils/logging"
+	typedsockets "fyp/common/utils/net/typed-sockets"
 	"net"
 	"strings"
 	"sync"
@@ -11,9 +13,9 @@ type ErrorCorrectionHandler struct {
 	Handler
 
 	logger           *logging.Logger
-	connections      map[string]net.Conn
+	connections      map[string]*typedsockets.TCPTypedConnection[state.State]
 	connectionsMutex sync.Mutex
-	socket           *net.TCPListener
+	socket           *typedsockets.TCPSocketListener[state.State]
 	port             int
 	closeChannel     chan struct{}
 }
@@ -21,9 +23,9 @@ type ErrorCorrectionHandler struct {
 func NewErrorCorrectionHandler(logger *logging.Logger, socket *net.TCPListener, tcpPort int, gracefulCloseChannel chan struct{}) *ErrorCorrectionHandler {
 	return &ErrorCorrectionHandler{
 		logger:           logger,
-		connections:      map[string]net.Conn{},
+		connections:      map[string]*typedsockets.TCPTypedConnection[state.State]{},
 		connectionsMutex: sync.Mutex{},
-		socket:           socket,
+		socket:           typedsockets.NewTypedTCPSocketListener[state.State](socket),
 		port:             tcpPort,
 		closeChannel:     gracefulCloseChannel,
 	}
@@ -67,7 +69,7 @@ func (ec *ErrorCorrectionHandler) Handle() {
 		}
 
 		for id, conn := range ec.connections {
-			if _, err := conn.Write([]byte("ping")); err == nil {
+			if _, err := conn.Write(state.State{ServerPing: state.SERVER_PING}); err == nil {
 				continue
 			}
 
