@@ -128,10 +128,10 @@ def run_server(
         log_file = os.path.normpath(f"{LOGS_DIR}/server.log")
         with open(log_file, "+w") as log_file:
             process = subprocess.Popen(
-                [server_bin], stdout=log_file, stderr=log_file, env=SERVER_ENV
+                server_bin, stdout=log_file, stderr=log_file, env=SERVER_ENV
             )
     else:
-        process = subprocess.Popen([server_bin], env=SERVER_ENV)
+        process = subprocess.Popen(server_bin, env=SERVER_ENV)
 
     if wait_for_exit:
         process.wait()
