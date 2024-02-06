@@ -17,12 +17,7 @@ export SERVER_UDP_PORT := $(UDP_PORT)
 .PHONY: all
 
 pre:
-	@([[ -f "/proc/sys/fs/binfmt_misc/WSLInterop" ]] && \
-		echo "You are using Linux under WSL, please make sure that you set GOOS to 'linux'. Current value: $${GOOS}")
-
-	@[ $$GOOS == "linux" ] || exit 127
-	
-	@echo
+	@./scripts/pre
 
 all: pre clean build
 

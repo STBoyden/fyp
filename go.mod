@@ -5,7 +5,6 @@ go 1.21.6
 require (
 	github.com/TwiN/go-color v1.4.1
 	github.com/hajimehoshi/ebiten/v2 v2.6.5
-	github.com/phakornkiong/go-pattern-match v1.1.0
 )
 
 require (

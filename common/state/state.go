@@ -14,14 +14,17 @@ type State struct {
 	ClientUdpPort string `json:"client_udp_port,omitempty"`
 	ClientReady   bool   `json:"client_is_ready,omitempty"`
 
-	ServerPing serverPing `json:"ping_message,omitempty"`
+	ServerPing    serverPing `json:"ping_message,omitempty"`
+	ServerMessage string     `json:"server_message,omitempty"`
 }
 
 // Check that `State` corrrectly implements `typedsockets.Convertable`
-var _ typedsockets.Convertable = State{}
-var _ fmt.Stringer = State{}
+var (
+	_ typedsockets.Convertable = State{}
+	_ fmt.Stringer             = State{}
+)
 
-func EmptyState() State {
+func Empty() State {
 	return State{}
 }
 

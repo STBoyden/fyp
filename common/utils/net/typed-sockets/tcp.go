@@ -12,8 +12,8 @@ type TCPTypedConnection[T Convertable] struct {
 	TypedConnection[T]
 }
 
-func newTCPTypedConnection[T Convertable](conn net.Conn) TCPTypedConnection[T] {
-	return TCPTypedConnection[T]{TypedConnection[T]{conn: conn}}
+func NewTCPTypedConnection[T Convertable](conn net.Conn) TCPTypedConnection[T] {
+	return TCPTypedConnection[T]{TypedConnection[T]{conn: conn, connectionType: CONNECTION_TYPE_TCP}}
 }
 
 func (utc *TCPTypedConnection[T]) ReadFrom(data *T) (int64, error) {
@@ -49,7 +49,6 @@ type TCPSocketListener[T Convertable] struct {
 func NewTypedTCPSocketListenerFromPort[T Convertable](port string) (*TCPSocketListener[T], error) {
 	address := fmt.Sprintf(":%s", port)
 	listener, err := net.Listen("tcp", address)
-
 	if err != nil {
 		return nil, err
 	}
@@ -67,7 +66,7 @@ func (this *TCPSocketListener[T]) Accept() (*TCPTypedConnection[T], error) {
 		return nil, err
 	}
 
-	tc := newTCPTypedConnection[T](conn)
+	tc := NewTCPTypedConnection[T](conn)
 
 	return &tc, nil
 }
@@ -86,7 +85,7 @@ func DialTCP[T Convertable](host string, port string) (*TCPTypedConnection[T], e
 		return nil, err
 	}
 
-	tc := newTCPTypedConnection[T](conn)
+	tc := NewTCPTypedConnection[T](conn)
 
 	return &tc, nil
 }

@@ -4,34 +4,32 @@ import (
 	"fyp/common/state"
 	"fyp/common/utils/logging"
 	typedsockets "fyp/common/utils/net/typed-sockets"
+	"fyp/internal/models"
 	"net"
 	"strings"
-	"sync"
 )
 
 type ErrorCorrectionHandler struct {
 	Handler
 
-	logger           *logging.Logger
-	connections      map[string]*typedsockets.TCPTypedConnection[state.State]
-	connectionsMutex sync.Mutex
-	socket           *typedsockets.TCPSocketListener[state.State]
-	port             int
-	closeChannel     chan struct{}
+	logger         *logging.Logger
+	connectionsMap *models.ConnectionsMap[typedsockets.TCPTypedConnection[state.State]]
+	socket         *typedsockets.TCPSocketListener[state.State]
+	port           int
+	closeChannel   chan struct{}
 }
 
 func NewErrorCorrectionHandler(logger *logging.Logger, socket *net.TCPListener, tcpPort int, gracefulCloseChannel chan struct{}) *ErrorCorrectionHandler {
 	return &ErrorCorrectionHandler{
-		logger:           logger,
-		connections:      map[string]*typedsockets.TCPTypedConnection[state.State]{},
-		connectionsMutex: sync.Mutex{},
-		socket:           typedsockets.NewTypedTCPSocketListener[state.State](socket),
-		port:             tcpPort,
-		closeChannel:     gracefulCloseChannel,
+		logger:         logger,
+		connectionsMap: models.NewConnectionsMap[typedsockets.TCPTypedConnection[state.State]](),
+		socket:         typedsockets.NewTypedTCPSocketListener[state.State](socket),
+		port:           tcpPort,
+		closeChannel:   gracefulCloseChannel,
 	}
 }
 
-func (ec *ErrorCorrectionHandler) Handle() {
+func (ec ErrorCorrectionHandler) Handle() error {
 	ec.logger.Infof("Started error correction socket (TCP) on %d\n", ec.port)
 	exit := false
 
@@ -57,9 +55,7 @@ func (ec *ErrorCorrectionHandler) Handle() {
 			}
 
 			ec.logger.Infof("[TCP] Connected with %s", conn.RemoteAddr())
-			ec.connectionsMutex.Lock()
-			ec.connections[conn.RemoteAddr().String()] = conn
-			ec.connectionsMutex.Unlock()
+			ec.connectionsMap.UpdateConnection(conn.RemoteAddr().String(), conn)
 		}
 	}()
 
@@ -68,14 +64,12 @@ func (ec *ErrorCorrectionHandler) Handle() {
 			break
 		}
 
-		for id, conn := range ec.connections {
+		for id, conn := range ec.connectionsMap {
 			if _, err := conn.Write(state.State{ServerPing: state.SERVER_PING}); err == nil {
 				continue
 			}
 
-			ec.connectionsMutex.Lock()
-			delete(ec.connections, id)
-			ec.connectionsMutex.Unlock()
+			ec.connectionsMap.DeleteConnection(id)
 			ec.logger.Infof("[TCP] Disconnected from %s", id)
 
 			// TODO Handle sending error corrections to client here

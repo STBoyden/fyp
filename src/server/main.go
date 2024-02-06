@@ -14,14 +14,14 @@ import (
 var log = logging.NewServer()
 
 // We use this later in the main function to run the UDP and TCP handlers parallel.
-func makeParallel(functions ...func()) {
+func makeParallel(functions ...func() error) {
 	var group sync.WaitGroup
 	group.Add(len(functions))
 
 	defer group.Wait()
 
 	for _, function := range functions {
-		go func(f func()) {
+		go func(f func() error) {
 			defer group.Done()
 			f()
 		}(function)
@@ -80,7 +80,7 @@ func main() {
 
 	signalChannel := make(chan os.Signal, 2)
 	signal.Notify(signalChannel, os.Interrupt, syscall.SIGTERM)
-	signalFunc := func() {
+	signalFunc := func() error {
 		for s := range signalChannel {
 			if s == os.Interrupt || s == syscall.SIGTERM {
 				log.Infof("[SIGNAL HANDLER] Received %s signal, gracefully shutting down", s.String())
@@ -89,6 +89,8 @@ func main() {
 				break
 			}
 		}
+
+		return nil
 	}
 
 	makeParallel(gameSocketFunc, correctionSocketFunc, signalFunc)

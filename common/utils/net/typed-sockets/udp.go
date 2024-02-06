@@ -11,8 +11,8 @@ type UDPTypedConnection[T Convertable] struct {
 	TypedConnection[T]
 }
 
-func newUDPTypedConnection[T Convertable](conn net.Conn) UDPTypedConnection[T] {
-	return UDPTypedConnection[T]{TypedConnection[T]{conn: conn}}
+func NewUDPTypedConnection[T Convertable](conn net.Conn) UDPTypedConnection[T] {
+	return UDPTypedConnection[T]{TypedConnection[T]{conn: conn, connectionType: CONNECTION_TYPE_UDP}}
 }
 
 func (utc *UDPTypedConnection[T]) WriteTo(data T, addr net.Addr) (int, error) {
@@ -60,7 +60,6 @@ type UDPSocketListener[T Convertable] struct {
 func NewTypedUDPSocketListener[T Convertable](port string) (*UDPSocketListener[T], error) {
 	address := fmt.Sprintf(":%s", port)
 	listener, err := net.Listen("tcp", address)
-
 	if err != nil {
 		return nil, err
 	}
@@ -70,11 +69,12 @@ func NewTypedUDPSocketListener[T Convertable](port string) (*UDPSocketListener[T
 
 func (this *UDPSocketListener[T]) Accept() (*UDPTypedConnection[T], error) {
 	conn, err := this.listener.Accept()
+	println("got here ACCEPT")
 	if err != nil {
 		return nil, err
 	}
 
-	tc := newUDPTypedConnection[T](conn)
+	tc := NewUDPTypedConnection[T](conn)
 
 	return &tc, nil
 }
@@ -93,7 +93,7 @@ func DialUDP[T Convertable](host string, port string) (*UDPTypedConnection[T], e
 		return nil, err
 	}
 
-	tc := newUDPTypedConnection[T](conn)
+	tc := NewUDPTypedConnection[T](conn)
 
 	return &tc, nil
 }

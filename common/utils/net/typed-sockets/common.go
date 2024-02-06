@@ -46,6 +46,10 @@ type TypedConnection[T Convertable] struct {
 	connectionType connectionType
 }
 
+func NewTypedConnection[T Convertable](conn net.Conn, connectionType connectionType) TypedConnection[T] {
+	return TypedConnection[T]{conn: conn, connectionType: connectionType}
+}
+
 func (tc *TypedConnection[T]) ConnectionType() connectionType {
 	return tc.connectionType
 }
@@ -61,7 +65,6 @@ func (tc *TypedConnection[T]) Read(data *T) (bytesRead int, err error) {
 
 	for {
 		amount, err := tc.conn.Read(chunk)
-
 		if err != nil {
 			if err != io.EOF {
 				return amount, err

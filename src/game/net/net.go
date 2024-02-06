@@ -131,7 +131,7 @@ func (g *Net) Update() error {
 	}()
 
 	go func() {
-		receivedState := state.EmptyState()
+		receivedState := state.Empty()
 
 		for {
 			if _, err := g.udpConn.Write(state.State{ClientReady: true}); err != nil {
