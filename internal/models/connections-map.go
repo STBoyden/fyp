@@ -23,6 +23,8 @@ func NewConnectionsMap[T typedConnections]() *ConnectionsMap[T] {
 }
 
 func (cm *ConnectionsMap[T]) UpdateConnection(source string, connection *T) {
+	cm.connectionsMutex.Lock()
+
 	// already readied - not needed again
 	if cm.connections[source] != nil {
 		cm.connectionsMutex.Unlock()
