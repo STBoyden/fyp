@@ -20,37 +20,37 @@ type Convertable interface {
 	Unmarshal(data []byte) (isNil bool, err error)
 }
 
-type connectionType int
+type ConnectionType int
 
 const (
-	CONNECTION_TYPE_TCP connectionType = iota
-	CONNECTION_TYPE_UDP
+	ConnectionTypeTCP ConnectionType = iota
+	ConnectionTypeUDP
 )
 
-func (ct connectionType) String() string {
+func (ct ConnectionType) String() string {
 	switch ct {
-	case CONNECTION_TYPE_TCP:
+	case ConnectionTypeTCP:
 		return "tcp"
-	case CONNECTION_TYPE_UDP:
+	case ConnectionTypeUDP:
 		return "udp"
 	default:
 		return "unknown"
 	}
 }
 
-// Ensure that ConnectionType implements Stringer correctly
-var _ fmt.Stringer = CONNECTION_TYPE_TCP
+// Ensure that ConnectionType implements Stringer correctly.
+var _ fmt.Stringer = ConnectionTypeTCP
 
 type TypedConnection[T Convertable] struct {
 	conn           net.Conn
-	connectionType connectionType
+	connectionType ConnectionType
 }
 
-func NewTypedConnection[T Convertable](conn net.Conn, connectionType connectionType) TypedConnection[T] {
+func NewTypedConnection[T Convertable](conn net.Conn, connectionType ConnectionType) TypedConnection[T] {
 	return TypedConnection[T]{conn: conn, connectionType: connectionType}
 }
 
-func (tc *TypedConnection[T]) ConnectionType() connectionType {
+func (tc *TypedConnection[T]) ConnectionType() ConnectionType {
 	return tc.connectionType
 }
 
@@ -66,7 +66,7 @@ func (tc *TypedConnection[T]) Read(data *T) (bytesRead int, err error) {
 	for {
 		amount, err := tc.conn.Read(chunk)
 		if err != nil {
-			if err != io.EOF {
+			if errors.Is(err, io.EOF) {
 				return amount, err
 			}
 

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net"
 	"reflect"
+	"strconv"
 )
 
 type TCPTypedConnection[T Convertable] struct {
@@ -13,13 +14,13 @@ type TCPTypedConnection[T Convertable] struct {
 }
 
 func NewTCPTypedConnection[T Convertable](conn net.Conn) TCPTypedConnection[T] {
-	return TCPTypedConnection[T]{TypedConnection[T]{conn: conn, connectionType: CONNECTION_TYPE_TCP}}
+	return TCPTypedConnection[T]{TypedConnection[T]{conn: conn, connectionType: ConnectionTypeTCP}}
 }
 
 func (utc *TCPTypedConnection[T]) ReadFrom(data *T) (int64, error) {
 	switch conn := utc.conn.(type) {
 	case *net.TCPConn:
-		buffer := make([]byte, 0, 4096)
+		buffer := make([]byte, 4096)
 		reader := bytes.NewReader(buffer)
 
 		amountRead, err := conn.ReadFrom(reader)
@@ -43,12 +44,17 @@ func (utc *TCPTypedConnection[T]) ReadFrom(data *T) (int64, error) {
 }
 
 type TCPSocketListener[T Convertable] struct {
-	listener net.Listener
+	listener *net.TCPListener
 }
 
 func NewTypedTCPSocketListenerFromPort[T Convertable](port string) (*TCPSocketListener[T], error) {
-	address := fmt.Sprintf(":%s", port)
-	listener, err := net.Listen("tcp", address)
+	iport, err := strconv.Atoi(port)
+	if err != nil {
+		return nil, err
+	}
+
+	address := net.TCPAddr{IP: net.IPv4(0, 0, 0, 0), Port: iport}
+	listener, err := net.ListenTCP("tcp", &address)
 	if err != nil {
 		return nil, err
 	}
@@ -60,8 +66,8 @@ func NewTypedTCPSocketListener[T Convertable](listener *net.TCPListener) *TCPSoc
 	return &TCPSocketListener[T]{listener: listener}
 }
 
-func (this *TCPSocketListener[T]) Accept() (*TCPTypedConnection[T], error) {
-	conn, err := this.listener.Accept()
+func (tsl *TCPSocketListener[T]) Accept() (*TCPTypedConnection[T], error) {
+	conn, err := tsl.listener.Accept()
 	if err != nil {
 		return nil, err
 	}
@@ -71,15 +77,15 @@ func (this *TCPSocketListener[T]) Accept() (*TCPTypedConnection[T], error) {
 	return &tc, nil
 }
 
-func (this *TCPSocketListener[T]) Addr() net.Addr {
-	return this.listener.Addr()
+func (tsl *TCPSocketListener[T]) Addr() net.Addr {
+	return tsl.listener.Addr()
 }
 
-func (this *TCPSocketListener[T]) Close() error {
-	return this.listener.Close()
+func (tsl *TCPSocketListener[T]) Close() error {
+	return tsl.listener.Close()
 }
 
-func DialTCP[T Convertable](host string, port string) (*TCPTypedConnection[T], error) {
+func DialTCP[T Convertable](host, port string) (*TCPTypedConnection[T], error) {
 	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%s", host, port))
 	if err != nil {
 		return nil, err

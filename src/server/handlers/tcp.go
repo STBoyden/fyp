@@ -1,10 +1,10 @@
 package handlers
 
 import (
-	"fyp/common/state"
-	"fyp/common/utils/logging"
-	typedsockets "fyp/common/utils/net/typed-sockets"
-	"fyp/internal/models"
+	"fyp/src/common/state"
+	"fyp/src/common/utils/logging"
+	typedsockets "fyp/src/common/utils/net/typed-sockets"
+	"fyp/src/internal/models"
 	"net"
 	"strings"
 )
@@ -64,8 +64,11 @@ func (ec ErrorCorrectionHandler) Handle() error {
 			break
 		}
 
-		for id, conn := range ec.connectionsMap {
-			if _, err := conn.Write(state.State{ServerPing: state.SERVER_PING}); err == nil {
+		for pair := range ec.connectionsMap.Iter() {
+			conn := pair.Conn
+			id := pair.ID
+
+			if _, err := conn.Write(state.State{ServerPing: state.ServerPing}); err == nil {
 				continue
 			}
 
@@ -75,4 +78,6 @@ func (ec ErrorCorrectionHandler) Handle() error {
 			// TODO Handle sending error corrections to client here
 		}
 	}
+
+	return nil
 }

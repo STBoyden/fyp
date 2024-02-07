@@ -3,22 +3,22 @@ package state
 import (
 	"encoding/json"
 	"fmt"
-	typedsockets "fyp/common/utils/net/typed-sockets"
+	typedsockets "fyp/src/common/utils/net/typed-sockets"
 )
 
 type serverPing string
 
-const SERVER_PING serverPing = "ping"
+const ServerPing serverPing = "ping"
 
 type State struct {
-	ClientUdpPort string `json:"client_udp_port,omitempty"`
+	ClientUDPPort string `json:"client_udp_port,omitempty"`
 	ClientReady   bool   `json:"client_is_ready,omitempty"`
 
 	ServerPing    serverPing `json:"ping_message,omitempty"`
 	ServerMessage string     `json:"server_message,omitempty"`
 }
 
-// Check that `State` corrrectly implements `typedsockets.Convertable`
+// Check that `State` corrrectly implements `typedsockets.Convertable` and `fmt.Stringer`.
 var (
 	_ typedsockets.Convertable = State{}
 	_ fmt.Stringer             = State{}
@@ -28,7 +28,7 @@ func Empty() State {
 	return State{}
 }
 
-// Turn the current `State` and marshal it into JSON
+// Turn the current `State` and marshal it into JSON.
 func (s State) Marshal() ([]byte, error) {
 	return json.Marshal(s)
 }

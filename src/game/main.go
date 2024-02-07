@@ -1,7 +1,7 @@
 package main
 
 import (
-	"fyp/common/utils/logging"
+	"fyp/src/common/utils/logging"
 	"fyp/src/game/net"
 	"os"
 

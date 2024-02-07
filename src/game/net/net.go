@@ -1,9 +1,9 @@
 package net
 
 import (
-	"fyp/common/state"
-	"fyp/common/utils/logging"
-	typedsockets "fyp/common/utils/net/typed-sockets"
+	"fyp/src/common/state"
+	"fyp/src/common/utils/logging"
+	typedsockets "fyp/src/common/utils/net/typed-sockets"
 	"net"
 	"strings"
 
@@ -92,9 +92,9 @@ func (g *Net) init() error {
 			return err
 		}
 
-		socketConn, err := socket.Accept()
+		socketConn, err := socket.Conn()
 		if err != nil {
-			g.logger.Errorf("Could not start accepting on UDP socket: %s", err.Error())
+			g.logger.Errorf("Could not get connection from socket: %s", err.Error())
 			return err
 		}
 
@@ -102,11 +102,15 @@ func (g *Net) init() error {
 		portColonIndex := strings.LastIndex(localAddress, ":")
 		portStr := localAddress[portColonIndex+1:]
 
-		_, err = conn.Write(state.State{ClientUdpPort: portStr})
+		s := state.State{ClientUDPPort: portStr}
+
+		bytesWritten, err := conn.Write(s)
 		if err != nil {
 			g.logger.Errorf("Could not send port to server: %s", err.Error())
 			return err
 		}
+
+		g.logger.Debugf("[UDP NET-INIT] Wrote %d bytes to server at %s: %s", bytesWritten, conn.RemoteAddr().String(), s)
 
 		g.rxUdpSocketConn = socketConn
 		g.udpConn = conn

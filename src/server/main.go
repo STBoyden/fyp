@@ -1,7 +1,7 @@
 package main
 
 import (
-	"fyp/common/utils/logging"
+	"fyp/src/common/utils/logging"
 	"fyp/src/server/handlers"
 	"net"
 	"os"
@@ -23,7 +23,8 @@ func makeParallel(functions ...func() error) {
 	for _, function := range functions {
 		go func(f func() error) {
 			defer group.Done()
-			f()
+			err := f()
+			log.Errorf("Error occurred in handle: %s", err.Error())
 		}(function)
 	}
 }

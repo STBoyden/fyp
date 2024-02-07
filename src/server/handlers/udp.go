@@ -1,10 +1,10 @@
 package handlers
 
 import (
-	"fyp/common/state"
-	"fyp/common/utils/logging"
-	typedsockets "fyp/common/utils/net/typed-sockets"
-	"fyp/internal/models"
+	"fyp/src/common/state"
+	"fyp/src/common/utils/logging"
+	typedsockets "fyp/src/common/utils/net/typed-sockets"
+	"fyp/src/internal/models"
 	"net"
 	"net/netip"
 	"strings"
@@ -41,7 +41,6 @@ func (gh GameHandler) Handle() error {
 	}()
 
 	clientState := state.Empty()
-
 	var clientIP string
 	var clientPort string
 
@@ -50,22 +49,25 @@ func (gh GameHandler) Handle() error {
 		if err != nil {
 			if strings.Contains(err.Error(), "use of closed network connection") {
 				gh.logger.Warn("[UDP] Closed")
-
 				break
+			} else if strings.Contains(err.Error(), "nothing read") {
+				continue
 			}
 
 			gh.logger.Errorf("[UDP] %s\n", err)
 			continue
 		}
 
-		if size == 0 {
+		if size == 0 || clientState == state.Empty() {
 			continue
 		}
 
-		if clientState.ClientUdpPort != "" {
+		gh.logger.Debugf("[UDP] Received state from client at %s: %s", addr, clientState)
+
+		if clientState.ClientUDPPort != "" {
 			portColonIndex := strings.LastIndex(addr.String(), ":")
 			clientIP = addr.String()[:portColonIndex-1]
-			clientPort = clientState.ClientUdpPort
+			clientPort = clientState.ClientUDPPort
 		} else if clientState.ClientReady {
 			clientConn, err := typedsockets.DialUDP[state.State](clientIP, clientPort)
 			if err != nil {
