@@ -204,7 +204,7 @@ if len(sys.argv) > 1:
             run_with_logs()
         case "clean":
             clean()
-        case "format":
+        case "fmt" | "format":
             format()
         case "lint":
             lint()
