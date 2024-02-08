@@ -46,20 +46,20 @@ build_server: prebuild
 
 build: build_game build_server
 
-run_game: prerun
+run_game: build_game prerun
 	go run src/game/main.go 2>&1 | tee -a $(LOGS_DIR)/game.log
 	@echo
 
-run_server: prerun
+run_server: build_server prerun
 	go run src/server/main.go 2>&1 | tee -a $(LOGS_DIR)/server.log
 	@echo
 
-run: prerun
-	(go run ./src/server/main.go 2>&1 | tee -a $(LOGS_DIR)/server.log) > /dev/null & disown
-	(go run ./src/game/main.go 2>&1 | tee -a $(LOGS_DIR)/game.log) > /dev/null
+run: build prerun
+	($(BUILD_DIR)/server 2>&1 | tee -a $(LOGS_DIR)/server.log) > /dev/null & disown
+	($(BUILD_DIR)/game 2>&1 | tee -a $(LOGS_DIR)/game.log) > /dev/null
 	@echo
 
 run_with_logs: prerun
-	go run src/server/main.go & disown
-	go run src/game/main.go
+	$(BUILD_DIR)/server & disown
+	$(BUILD_DIR)/game
 	@echo
