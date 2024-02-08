@@ -48,6 +48,10 @@ func main() {
 		log.Error(err.Error())
 	}
 
-	_ = game.Delete()
+	err := game.Delete()
+	if err != nil {
+		log.Errorf("Error occurred when deleting game: %s", err.Error())
+	}
+
 	log.Info("Exited")
 }

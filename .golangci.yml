@@ -404,7 +404,7 @@ output:
   # (ref: https://github.com/golangci/golangci-lint/issues/3728)
   #
   # There are more formats which can be used on CI or by your IDE.
-  format: line-number:lint.txt
+  format: colored-line-number:stdout
 
   # I do not find this useful, parameter above already enables filepath
   # with a line and column. For me, it's easier to follow the path and

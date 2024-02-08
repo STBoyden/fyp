@@ -25,7 +25,7 @@ type Net struct {
 	udpConn             *typedsockets.UDPTypedConnection[state.State]
 	udpIsConnected      bool
 	udpCloseLoopChannel chan struct{}
-	rxUdpSocketConn     *typedsockets.UDPTypedConnection[state.State]
+	rxUDPSocketConn     *typedsockets.UDPTypedConnection[state.State]
 
 	message string
 }
@@ -112,7 +112,7 @@ func (g *Net) init() error {
 
 		g.logger.Debugf("[UDP NET-INIT] Wrote %d bytes to server at %s: %s", bytesWritten, conn.RemoteAddr().String(), s)
 
-		g.rxUdpSocketConn = socketConn
+		g.rxUDPSocketConn = socketConn
 		g.udpConn = conn
 		g.udpIsConnected = true
 	}
@@ -131,7 +131,7 @@ func (g *Net) Update() error {
 	go func() {
 		<-g.udpCloseLoopChannel
 		g.logger.Infof("[UDP-RX] Stopping...")
-		g.rxUdpSocketConn.Close()
+		g.rxUDPSocketConn.Close()
 	}()
 
 	go func() {
@@ -148,7 +148,7 @@ func (g *Net) Update() error {
 				continue
 			}
 
-			size, _, err := g.rxUdpSocketConn.ReadFrom(&receivedState)
+			size, err := g.rxUDPSocketConn.Read(&receivedState)
 			if err != nil {
 				if strings.Contains(err.Error(), "use of closed network connection") {
 					g.logger.Warn("[UDP-RX] Closed")
@@ -170,7 +170,7 @@ func (g *Net) Draw(screen *ebiten.Image) {
 	ebitenutil.DebugPrint(screen, g.message)
 }
 
-func (g *Net) Layout(outsideWidth int, outsideHeight int) (screenWidth int, screenHeight int) {
+func (g *Net) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight int) {
 	return outsideWidth / 2, outsideHeight / 2
 }
 
