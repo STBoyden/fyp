@@ -24,8 +24,9 @@ func makeParallel(functions ...func() error) {
 	for _, function := range functions {
 		go func(f func() error) {
 			defer group.Done()
-			err := f()
-			log.Errorf("Error occurred in handle: %s", err.Error())
+			if err := f(); err != nil {
+				log.Errorf("Error occurred in handle: %s", err.Error())
+			}
 		}(function)
 	}
 }
