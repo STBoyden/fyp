@@ -146,14 +146,14 @@ func (g *Game) init() error {
 }
 
 func (g *Game) Update() error {
-	g.ui.Update()
-
 	if !g.initialised {
 		err := g.init()
 		if err != nil {
 			return err
 		}
 	}
+
+	g.ui.Update()
 
 	go func() {
 		<-g.udpCloseLoopChannel
