@@ -1,9 +1,10 @@
 package main
 
 import (
+	"os"
+
 	"fyp/src/common/utils/logging"
 	"fyp/src/game/net"
-	"os"
 
 	ebiten "github.com/hajimehoshi/ebiten/v2"
 )

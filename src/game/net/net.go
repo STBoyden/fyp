@@ -1,11 +1,12 @@
 package net
 
 import (
+	"net"
+	"strings"
+
 	"fyp/src/common/state"
 	"fyp/src/common/utils/logging"
 	typedsockets "fyp/src/common/utils/net/typed-sockets"
-	"net"
-	"strings"
 
 	ebiten "github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
@@ -31,7 +32,7 @@ type Net struct {
 }
 
 func New(
-	serverAddress string, tcpPort string, udpPort string, logger *logging.Logger,
+	serverAddress, tcpPort, udpPort string, logger *logging.Logger,
 ) *Net {
 	return &Net{
 		initialised:         false,

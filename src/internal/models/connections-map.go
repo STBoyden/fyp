@@ -1,9 +1,10 @@
 package models
 
 import (
+	"sync"
+
 	"fyp/src/common/state"
 	typedsockets "fyp/src/common/utils/net/typed-sockets"
-	"sync"
 )
 
 type typedConnections interface {
