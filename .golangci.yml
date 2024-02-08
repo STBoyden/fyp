@@ -91,7 +91,6 @@ linters:
     # Might not be that important but I prefer to keep all of them.
     # `gofumpt` is amazing, kudos to Daniel Marti https://github.com/mvdan/gofumpt
     - gofmt
-    - gofumpt
     - goimports
 
     # Allow or ban replace directives in go.mod

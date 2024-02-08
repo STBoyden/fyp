@@ -6,6 +6,7 @@ import (
 
 	"fyp/src/common/state"
 	"fyp/src/common/utils/logging"
+
 	typedsockets "fyp/src/common/utils/net/typed-sockets"
 
 	ebiten "github.com/hajimehoshi/ebiten/v2"

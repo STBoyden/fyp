@@ -7,8 +7,9 @@ import (
 
 	"fyp/src/common/state"
 	"fyp/src/common/utils/logging"
-	typedsockets "fyp/src/common/utils/net/typed-sockets"
 	"fyp/src/internal/models"
+
+	typedsockets "fyp/src/common/utils/net/typed-sockets"
 )
 
 type GameHandler struct {
