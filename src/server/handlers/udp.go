@@ -68,11 +68,9 @@ func (gh GameHandler) Handle() error {
 
 		// check if the address is in the set of the previously connected addresses, and log if it isn't
 		if _, ok := oldAddrs[addr.String()]; !ok {
-			gh.logger.Debugf("[UDP] Initial connection with %s. Sent: %s", addr, clientState)
+			gh.logger.Debugf("[UDP] Initial connection with %s", addr)
 			oldAddrs[addr.String()] = struct{}{}
 		}
-
-		gh.logger.Debugf("[UDP] Received connection with %s. Sent: %s", addr, clientState)
 
 		if size == 0 || clientState == state.Empty() {
 			continue
@@ -82,9 +80,11 @@ func (gh GameHandler) Handle() error {
 
 		if clientState.ClientUDPPort != "" {
 			portColonIndex := strings.LastIndex(addr.String(), ":")
-			clientIP = addr.String()[:portColonIndex-1]
+			clientIP = addr.String()[:portColonIndex]
 			clientPort = clientState.ClientUDPPort
-		} else if clientState.ClientReady {
+		}
+
+		if clientState.ClientReady {
 			clientConn, err := typedsockets.DialUDP[state.State](clientIP, clientPort)
 			if err != nil {
 				gh.logger.Errorf("[UDP] Could not connect to client at '%s:%s'", clientIP, clientPort)

@@ -2,6 +2,7 @@ package state
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 
 	typedsockets "fyp/src/common/utils/net/typed-sockets"
@@ -35,11 +36,18 @@ func (s State) Marshal() ([]byte, error) {
 }
 
 // Overwrites the current `State` with the JSON `data`.
-func (s State) Unmarshal(data []byte) (bool, error) {
-	ptr := &s
-	err := json.Unmarshal(data, ptr)
+func (State) Unmarshal(v any, data []byte) error {
+	if v, ok := v.(*State); ok {
+		err := json.Unmarshal(data, &v)
 
-	return ptr == nil, err
+		return err
+	}
+
+	if _, ok := v.(State); ok {
+		return errors.New("this unmarshal function requires *State, got State instead")
+	}
+
+	return errors.New("this unmarshal function is not for this type")
 }
 
 func (s State) String() string {

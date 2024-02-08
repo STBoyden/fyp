@@ -28,14 +28,15 @@ func (utc *TCPTypedConnection[T]) ReadFrom(data *T) (int64, error) {
 			return amountRead, errors.Join(errors.New("could not receive incoming buffer"), err)
 		}
 
-		isNil, err := (*data).Unmarshal(buffer)
+		resizedBuffer := buffer[:amountRead]
+
+		var newData T
+		err = newData.Unmarshal(&newData, resizedBuffer)
 		if err != nil {
 			return amountRead, errors.Join(fmt.Errorf("could not unmarshal incoming buffer into %s", reflect.TypeOf(data)))
 		}
 
-		if isNil {
-			return amountRead, fmt.Errorf("result of unmarshal was a nil value for type %s", reflect.TypeOf(data))
-		}
+		*data = newData
 
 		return amountRead, nil
 	default:

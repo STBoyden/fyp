@@ -5,19 +5,18 @@ import (
 	"fmt"
 	"io"
 	"net"
-	"reflect"
 	"time"
 )
 
 type Convertable interface {
+	fmt.Stringer
+
 	// Takes the current state of the implementing struct, and marshals it into a
 	// format chosen by the implementor.
 	Marshal() (data []byte, err error)
 
 	// Unmarshals the given data passed as parameter into the implementor's type.
-	// The bool return is used to indicate whether the pointer to the implementor
-	// type is nil (false) or not nil (true).
-	Unmarshal(data []byte) (isNil bool, err error)
+	Unmarshal(v any, data []byte) error
 }
 
 type ConnectionType int
@@ -76,14 +75,13 @@ func (tc *TypedConnection[T]) Read(data *T) (bytesRead int, err error) {
 		buffer = append(buffer, chunk[:amount]...)
 	}
 
-	isNil, err := (*data).Unmarshal(buffer)
+	var newData T
+	err = newData.Unmarshal(&newData, buffer)
 	if err != nil {
 		return 0, errors.Join(errors.New("unmarshal of data returned an error"), err)
 	}
 
-	if isNil {
-		return 0, fmt.Errorf("unmarshal of data returned a nil pointer of %s", reflect.TypeOf(data))
-	}
+	*data = newData
 
 	return len(buffer), nil
 }

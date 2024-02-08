@@ -36,7 +36,6 @@ func (utc *UDPTypedConnection[T]) ReadFrom(data *T) (int, net.Addr, error) {
 		buffer := make([]byte, 4096)
 
 		amountRead, addr, err := conn.ReadFrom(buffer)
-		println(string(buffer))
 		if err != nil {
 			return amountRead, addr, errors.Join(errors.New("could not receive incoming buffer"), err)
 		}
@@ -45,14 +44,14 @@ func (utc *UDPTypedConnection[T]) ReadFrom(data *T) (int, net.Addr, error) {
 		}
 
 		resizedBuffer := buffer[:amountRead]
-		isNil, err := (*data).Unmarshal(resizedBuffer)
+
+		var newData T
+		err = newData.Unmarshal(&newData, resizedBuffer)
 		if err != nil {
 			return amountRead, addr, errors.Join(fmt.Errorf("could not unmarshal incoming buffer into %s: %s", reflect.TypeOf(data), err.Error()))
 		}
 
-		if isNil {
-			return amountRead, addr, fmt.Errorf("result of unmarshal was a nil value for type %s", reflect.TypeOf(data))
-		}
+		*data = newData
 
 		return amountRead, addr, nil
 	default:
