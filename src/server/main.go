@@ -34,7 +34,7 @@ func makeParallel(functions ...func() error) {
 func main() {
 	var tcpPortStr string
 	var udpPortStr string
-	gracefulCloseChannel := make(chan struct{})
+	gracefulCloseChannel := make(chan interface{})
 
 	if _p, isPresent := os.LookupEnv("TCP_PORT"); isPresent {
 		tcpPortStr = _p
@@ -87,8 +87,8 @@ func main() {
 		for s := range signalChannel {
 			if s == os.Interrupt || s == syscall.SIGTERM {
 				log.Infof("[SIGNAL HANDLER] Received %s signal, gracefully shutting down", s.String())
-				gracefulCloseChannel <- struct{}{}
-				gracefulCloseChannel <- struct{}{}
+				gracefulCloseChannel <- nil
+				gracefulCloseChannel <- nil
 				break
 			}
 		}

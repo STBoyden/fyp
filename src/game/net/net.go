@@ -26,7 +26,7 @@ type Net struct {
 	tcpIsConnected      bool
 	udpConn             *typedsockets.UDPTypedConnection[state.State]
 	udpIsConnected      bool
-	udpCloseLoopChannel chan struct{}
+	udpCloseLoopChannel chan interface{}
 	rxUDPSocketConn     *typedsockets.UDPTypedConnection[state.State]
 
 	message string
@@ -41,7 +41,7 @@ func New(
 		tcpPort:             tcpPort,
 		udpPort:             udpPort,
 		logger:              logger,
-		udpCloseLoopChannel: make(chan struct{}),
+		udpCloseLoopChannel: make(chan interface{}),
 	}
 }
 
@@ -183,7 +183,7 @@ func (g *Net) Delete() error {
 
 	if g.udpIsConnected {
 		g.udpConn.Close()
-		g.udpCloseLoopChannel <- struct{}{}
+		g.udpCloseLoopChannel <- nil
 	}
 
 	return nil

@@ -18,10 +18,10 @@ type ErrorCorrectionHandler struct {
 	connectionsMap *models.ConnectionsMap[typedsockets.TCPTypedConnection[state.State]]
 	socket         *typedsockets.TCPSocketListener[state.State]
 	port           int
-	closeChannel   chan struct{}
+	closeChannel   chan interface{}
 }
 
-func NewErrorCorrectionHandler(logger *logging.Logger, socket *net.TCPListener, tcpPort int, gracefulCloseChannel chan struct{}) *ErrorCorrectionHandler {
+func NewErrorCorrectionHandler(logger *logging.Logger, socket *net.TCPListener, tcpPort int, gracefulCloseChannel chan interface{}) *ErrorCorrectionHandler {
 	return &ErrorCorrectionHandler{
 		logger:         logger,
 		connectionsMap: models.NewConnectionsMap[typedsockets.TCPTypedConnection[state.State]](),

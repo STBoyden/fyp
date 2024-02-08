@@ -17,12 +17,12 @@ type GameHandler struct {
 	connectionsMap *models.ConnectionsMap[typedsockets.UDPTypedConnection[state.State]]
 	socket         typedsockets.UDPTypedConnection[state.State]
 	connInfo       netip.AddrPort
-	closeChannel   chan struct{}
+	closeChannel   chan interface{}
 }
 
 var _ Handler = GameHandler{}
 
-func NewGameHandler(logger *logging.Logger, socket *net.UDPConn, udpHost *net.UDPAddr, udpPort int, gracefulCloseChannel chan struct{}) *GameHandler {
+func NewGameHandler(logger *logging.Logger, socket *net.UDPConn, udpHost *net.UDPAddr, udpPort int, gracefulCloseChannel chan interface{}) *GameHandler {
 	return &GameHandler{
 		logger:         logger,
 		connectionsMap: models.NewConnectionsMap[typedsockets.UDPTypedConnection[state.State]](),
