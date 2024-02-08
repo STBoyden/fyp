@@ -171,6 +171,19 @@ def run_with_logs():
     print()
 
 
+def format(root_path: str = "./src"):
+    for root, dirs, files in os.walk(root_path):
+        for file in filter(lambda x: x.endswith(".go"), files):
+            subprocess.run(f"gofumpt -w -extra {root}/{file}".split())
+
+        for dir in dirs:
+            format(dir)
+
+
+def lint():
+    subprocess.run("golangci-lint run".split())
+
+
 if len(sys.argv) > 1:
     action = sys.argv[1]
 
@@ -191,6 +204,10 @@ if len(sys.argv) > 1:
             run_with_logs()
         case "clean":
             clean()
+        case "format":
+            format()
+        case "lint":
+            lint()
         case _:
             print("Not a valid command")
             exit(1)
