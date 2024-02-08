@@ -19,6 +19,12 @@ export SERVER_UDP_PORT := $(UDP_PORT)
 pre:
 	@./scripts/pre
 
+fmt:
+	find . -iname *.go -exec gofumpt -w -extra {} \;
+
+lint:
+	golangci-lint run
+
 all: pre clean build
 
 clean:
