@@ -36,6 +36,7 @@ func (utc *UDPTypedConnection[T]) ReadFrom(data *T) (int, net.Addr, error) {
 		buffer := make([]byte, 4096)
 
 		amountRead, addr, err := conn.ReadFrom(buffer)
+		println(string(buffer))
 		if err != nil {
 			return amountRead, addr, errors.Join(errors.New("could not receive incoming buffer"), err)
 		}

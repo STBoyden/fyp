@@ -45,9 +45,15 @@ func (gh GameHandler) Handle() error {
 	clientState := state.Empty()
 	var clientIP string
 	var clientPort string
+	oldAddrs := make(map[string]struct{}) // hack to get a set of `net.Addr`s
 
 	for {
 		size, addr, err := gh.socket.ReadFrom(&clientState)
+
+		if addr == nil {
+			continue
+		}
+
 		if err != nil {
 			if strings.Contains(err.Error(), "use of closed network connection") {
 				gh.logger.Warn("[UDP] Closed")
@@ -59,6 +65,14 @@ func (gh GameHandler) Handle() error {
 			gh.logger.Errorf("[UDP] %s\n", err)
 			continue
 		}
+
+		// check if the address is in the set of the previously connected addresses, and log if it isn't
+		if _, ok := oldAddrs[addr.String()]; !ok {
+			gh.logger.Debugf("[UDP] Initial connection with %s. Sent: %s", addr, clientState)
+			oldAddrs[addr.String()] = struct{}{}
+		}
+
+		gh.logger.Debugf("[UDP] Received connection with %s. Sent: %s", addr, clientState)
 
 		if size == 0 || clientState == state.Empty() {
 			continue

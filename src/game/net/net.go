@@ -108,11 +108,12 @@ func (g *Net) init() error {
 
 		bytesWritten, err := conn.Write(s)
 		if err != nil {
-			g.logger.Errorf("Could not send port to server: %s", err.Error())
+			g.logger.Errorf("[UDP] Could not send port to server: %s", err.Error())
 			return err
 		}
 
 		g.logger.Debugf("[UDP NET-INIT] Wrote %d bytes to server at %s: %s", bytesWritten, conn.RemoteAddr().String(), s)
+		g.logger.Debugf("[UDP NET-INIT] Local addr: %s", conn.LocalAddr().String())
 
 		g.rxUDPSocketConn = socketConn
 		g.udpConn = conn
