@@ -151,7 +151,7 @@ func (g *Net) Update() error {
 				continue
 			}
 
-			size, err := g.rxUDPSocketConn.Read(&receivedState)
+			size, _, err := g.rxUDPSocketConn.ReadFrom(&receivedState)
 			if err != nil {
 				if strings.Contains(err.Error(), "use of closed network connection") {
 					g.logger.Warn("[UDP-RX] Closed")
@@ -162,7 +162,7 @@ func (g *Net) Update() error {
 			}
 
 			g.logger.Infof("[UDP-RX] Received %d bytes from server: %s", size, receivedState)
-			g.message = receivedState.String()
+			g.message = receivedState.ServerMessage
 		}
 	}()
 
