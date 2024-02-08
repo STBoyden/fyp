@@ -8,8 +8,8 @@ import (
 	"sync"
 	"syscall"
 
+	"fyp/src/cmd/server/handlers"
 	"fyp/src/common/utils/logging"
-	"fyp/src/server/handlers"
 )
 
 var log = logging.NewServer()

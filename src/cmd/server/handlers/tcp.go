@@ -33,7 +33,7 @@ func NewErrorCorrectionHandler(logger *logging.Logger, socket *net.TCPListener, 
 
 func (ec ErrorCorrectionHandler) Handle() error {
 	ec.logger.Infof("Started error correction socket (TCP) on %d\n", ec.port)
-	exit := false
+	exitChan := make(chan bool)
 
 	// Async closure to handle the closing of the socket, waits for the gracefulCloseChannel, and exits when it receives anything
 	go func() {
@@ -48,7 +48,7 @@ func (ec ErrorCorrectionHandler) Handle() error {
 			if err != nil {
 				if strings.Contains(err.Error(), "use of closed network connection") {
 					ec.logger.Warn("[TCP] Closed")
-					exit = true
+					exitChan <- true
 					break
 				}
 
@@ -62,7 +62,7 @@ func (ec ErrorCorrectionHandler) Handle() error {
 	}()
 
 	for {
-		if exit {
+		if <-exitChan {
 			break
 		}
 

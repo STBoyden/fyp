@@ -3,8 +3,8 @@ package main
 import (
 	"os"
 
+	"fyp/src/cmd/game/game"
 	"fyp/src/common/utils/logging"
-	"fyp/src/game/net"
 
 	ebiten "github.com/hajimehoshi/ebiten/v2"
 )
@@ -37,19 +37,20 @@ func main() {
 		os.Exit(1)
 	}
 
-	game := net.New(serverAddress, tcpPort, udpPort, log)
+	g := game.New(serverAddress, tcpPort, udpPort, log)
 
 	ebiten.SetWindowSize(1600, 900)
 	ebiten.SetWindowTitle("Final Year Project")
 	ebiten.SetWindowResizingMode(ebiten.WindowResizingModeEnabled)
 	ebiten.SetFullscreen(true)
+	ebiten.SetVsyncEnabled(true)
 
 	log.Info("Starting game...")
-	if err := ebiten.RunGame(game); err != nil {
+	if err := ebiten.RunGame(g); err != nil {
 		log.Error(err.Error())
 	}
 
-	err := game.Delete()
+	err := g.Delete()
 	if err != nil {
 		log.Errorf("Error occurred when deleting game: %s", err.Error())
 	}

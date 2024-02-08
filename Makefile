@@ -39,19 +39,19 @@ prerun: pre
 	go mod tidy
 
 build_game: prebuild
-	go build -o $(BUILD_DIR)/game src/game/main.go
+	go build -race -o $(BUILD_DIR)/game src/cmd/game/main.go
 
 build_server: prebuild
-	go build -o $(BUILD_DIR)/server src/server/main.go
+	go build -race -o $(BUILD_DIR)/server src/cmd/server/main.go
 
 build: build_game build_server
 
 run_game: build_game prerun
-	go run src/game/main.go 2>&1 | tee -a $(LOGS_DIR)/game.log
+	$(BUILD_DIR)/game 2>&1 | tee -a $(LOGS_DIR)/game.log
 	@echo
 
 run_server: build_server prerun
-	go run src/server/main.go 2>&1 | tee -a $(LOGS_DIR)/server.log
+	$(BUILD_DIR)/server 2>&1 | tee -a $(LOGS_DIR)/server.log
 	@echo
 
 run: build prerun
@@ -59,7 +59,7 @@ run: build prerun
 	($(BUILD_DIR)/game 2>&1 | tee -a $(LOGS_DIR)/game.log) > /dev/null
 	@echo
 
-run_with_logs: prerun
+run_with_logs: build prerun
 	$(BUILD_DIR)/server & disown
 	$(BUILD_DIR)/game
 	@echo

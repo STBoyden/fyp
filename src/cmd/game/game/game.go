@@ -1,6 +1,7 @@
-package net
+package game
 
 import (
+	"fmt"
 	"net"
 	"strings"
 
@@ -9,11 +10,19 @@ import (
 
 	typedsockets "fyp/src/common/utils/net/typed-sockets"
 
+	ebitenui "github.com/ebitenui/ebitenui"
+	"github.com/ebitenui/ebitenui/widget"
+	"github.com/golang/freetype/truetype"
 	ebiten "github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
+	"golang.org/x/image/font"
+	"golang.org/x/image/font/gofont/goregular"
 )
 
-type Net struct {
+type Game struct {
+	ui   *ebitenui.UI
+	font font.Face
+
 	initialised bool
 	tcpPort     string
 	udpPort     string
@@ -29,23 +38,25 @@ type Net struct {
 	udpCloseLoopChannel chan interface{}
 	rxUDPSocketConn     *typedsockets.UDPTypedConnection[state.State]
 
-	message string
+	stateChannel chan state.State
+	state        state.State
 }
 
 func New(
 	serverAddress, tcpPort, udpPort string, logger *logging.Logger,
-) *Net {
-	return &Net{
+) *Game {
+	return &Game{
 		initialised:         false,
 		serverAddress:       serverAddress,
 		tcpPort:             tcpPort,
 		udpPort:             udpPort,
 		logger:              logger,
 		udpCloseLoopChannel: make(chan interface{}),
+		stateChannel:        make(chan state.State),
 	}
 }
 
-func (g *Net) init() error {
+func (g *Game) init() error {
 	if !g.tcpIsConnected {
 		address := g.serverAddress + ":" + g.tcpPort
 
@@ -120,10 +131,23 @@ func (g *Net) init() error {
 		g.udpIsConnected = true
 	}
 
+	rootContainer := widget.NewContainer()
+	eui := &ebitenui.UI{Container: rootContainer}
+
+	fontFace, err := truetype.Parse(goregular.TTF)
+	if err != nil {
+		return err
+	}
+
+	g.font = truetype.NewFace(fontFace, &truetype.Options{})
+	g.ui = eui
+
 	return nil
 }
 
-func (g *Net) Update() error {
+func (g *Game) Update() error {
+	g.ui.Update()
+
 	if !g.initialised {
 		err := g.init()
 		if err != nil {
@@ -162,22 +186,32 @@ func (g *Net) Update() error {
 			}
 
 			g.logger.Infof("[UDP-RX] Received %d bytes from server: %s", size, receivedState)
-			g.message = receivedState.ServerMessage
+			g.stateChannel <- receivedState
 		}
 	}()
+
+	select {
+	case s := <-g.stateChannel:
+		g.state = s
+	default:
+	}
 
 	return nil
 }
 
-func (g *Net) Draw(screen *ebiten.Image) {
-	ebitenutil.DebugPrint(screen, g.message)
+func (g *Game) Draw(screen *ebiten.Image) {
+	if g.state.ServerMessage != "" {
+		ebitenutil.DebugPrint(screen, fmt.Sprintf("%.0f FPS", ebiten.ActualFPS()))
+	}
+
+	ebitenutil.DebugPrintAt(screen, g.state.ServerMessage, screen.Bounds().Dx()/2, screen.Bounds().Dy()/2)
 }
 
-func (g *Net) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight int) {
+func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight int) {
 	return outsideWidth / 2, outsideHeight / 2
 }
 
-func (g *Net) Delete() error {
+func (g *Game) Delete() error {
 	if g.tcpIsConnected {
 		g.tcpConn.Close()
 	}
