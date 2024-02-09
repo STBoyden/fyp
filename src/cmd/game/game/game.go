@@ -57,6 +57,8 @@ func New(
 }
 
 func (g *Game) init() error {
+	defer func() { g.initialised = true }()
+
 	if !g.tcpIsConnected {
 		address := g.serverAddress + ":" + g.tcpPort
 
@@ -131,6 +133,14 @@ func (g *Game) init() error {
 		g.udpIsConnected = true
 	}
 
+	if err := g.initUI(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (g *Game) initUI() error {
 	rootContainer := widget.NewContainer()
 	eui := &ebitenui.UI{Container: rootContainer}
 
@@ -200,9 +210,7 @@ func (g *Game) Update() error {
 }
 
 func (g *Game) Draw(screen *ebiten.Image) {
-	if g.state.ServerMessage != "" {
-		ebitenutil.DebugPrint(screen, fmt.Sprintf("%.0f FPS", ebiten.ActualFPS()))
-	}
+	ebitenutil.DebugPrint(screen, fmt.Sprintf("%.0f FPS", ebiten.ActualFPS()))
 
 	ebitenutil.DebugPrintAt(screen, g.state.ServerMessage, screen.Bounds().Dx()/2, screen.Bounds().Dy()/2)
 }
