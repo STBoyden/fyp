@@ -3,7 +3,7 @@ package main
 import (
 	"os"
 
-	"fyp/src/cmd/game/game"
+	"fyp/src/cmd/client/game"
 	"fyp/src/common/utils/logging"
 
 	ebiten "github.com/hajimehoshi/ebiten/v2"

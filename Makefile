@@ -49,7 +49,7 @@ prerun: pre
 	go mod tidy
 
 build_game: prebuild
-	go build -race -o $(BUILD_DIR)/game src/cmd/game/main.go
+	go build -race -o $(BUILD_DIR)/game src/cmd/client/main.go
 
 build_server: prebuild
 	go build -race -o $(BUILD_DIR)/server src/cmd/server/main.go

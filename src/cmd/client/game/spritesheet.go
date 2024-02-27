@@ -9,6 +9,20 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 )
 
+type playerState int
+
+const (
+	// player states.
+	PlayerStanding playerState = iota
+	PlayerRunningStage0
+	PlayerRunningStage1
+	PlayerRunningStage2
+	PlayerRunningStage4
+	PlayerJumping
+	PlayerCrouching
+	_PlayerMaxState
+)
+
 type Spritesheet struct {
 	image    *ebiten.Image
 	isLoaded bool
@@ -26,6 +40,7 @@ func (sheet *Spritesheet) Load() error {
 	return nil
 }
 
+// gets player sprites from a given index 0-3.
 func (sheet *Spritesheet) GetPlayer(index int) ([]*ebiten.Image, error) {
 	if !sheet.isLoaded {
 		return nil, errors.New("Spritesheet isn't loaded")

@@ -223,6 +223,9 @@ func (g *Game) Update() error {
 	return nil
 }
 
+func (g *Game) UpdateServer() {
+}
+
 func (g *Game) DebugDrawPlayerSprites(image *ebiten.Image) {
 	for playerIndex := 0; playerIndex < 4; playerIndex++ {
 		playerSprites, err := g.spritesheet.GetPlayer(playerIndex)
