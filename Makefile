@@ -16,6 +16,16 @@ export SERVER_UDP_PORT := $(UDP_PORT)
 
 .PHONY: all
 
+install_formatter:
+	@go install mvdan.cc/gofumpt@latest
+
+install_linter:
+	@curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $$(go env GOPATH)/bin v1.56.2
+
+install_tools: install_formatter install_linter
+
+check: fmt lint
+
 pre:
 	@./scripts/pre
 
