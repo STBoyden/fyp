@@ -5,6 +5,7 @@ import (
 	"net"
 	"strings"
 
+	"fyp/src/common/ctypes"
 	"fyp/src/common/state"
 	"fyp/src/common/utils/logging"
 
@@ -19,9 +20,16 @@ import (
 	"golang.org/x/image/font/gofont/goregular"
 )
 
+const (
+	spriteSize  = 15
+	spriteSizeF = float64(spriteSize)
+)
+
 type Game struct {
-	ui   *ebitenui.UI
-	font font.Face
+	ui          *ebitenui.UI
+	font        font.Face
+	spritesheet Spritesheet
+	localPlayer ctypes.Player
 
 	initialised bool
 	tcpPort     string
@@ -46,6 +54,7 @@ func New(
 	serverAddress, tcpPort, udpPort string, logger *logging.Logger,
 ) *Game {
 	return &Game{
+		localPlayer:         ctypes.Player{},
 		initialised:         false,
 		serverAddress:       serverAddress,
 		tcpPort:             tcpPort,
@@ -137,6 +146,10 @@ func (g *Game) init() error {
 		return err
 	}
 
+	if err := g.spritesheet.Load(); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -164,6 +177,7 @@ func (g *Game) Update() error {
 	}
 
 	g.ui.Update()
+	g.localPlayer.Update()
 
 	go func() {
 		<-g.udpCloseLoopChannel
@@ -209,14 +223,30 @@ func (g *Game) Update() error {
 	return nil
 }
 
-func (g *Game) Draw(screen *ebiten.Image) {
-	ebitenutil.DebugPrint(screen, fmt.Sprintf("%.0f FPS", ebiten.ActualFPS()))
+func (g *Game) DebugDrawPlayerSprites(image *ebiten.Image) {
+	for playerIndex := 0; playerIndex < 4; playerIndex++ {
+		playerSprites, err := g.spritesheet.GetPlayer(playerIndex)
+		if err != nil {
+			g.logger.Error(err.Error())
+		}
 
-	ebitenutil.DebugPrintAt(screen, g.state.ServerMessage, screen.Bounds().Dx()/2, screen.Bounds().Dy()/2)
+		for index, sprite := range playerSprites {
+			op := &ebiten.DrawImageOptions{}
+			op.GeoM.Translate(float64(index)*spriteSizeF, 100+((spriteSizeF+1.0)*float64(playerIndex)))
+			op.GeoM.Scale(2, 2)
+			image.DrawImage(sprite, op)
+		}
+	}
 }
 
-func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight int) {
-	return outsideWidth / 2, outsideHeight / 2
+func (g *Game) Draw(screen *ebiten.Image) {
+	ebitenutil.DebugPrint(screen, fmt.Sprintf("%.0f FPS", ebiten.ActualFPS()))
+	ebitenutil.DebugPrintAt(screen, g.state.ServerMessage, screen.Bounds().Dx()/2, screen.Bounds().Dy()/2)
+	g.DebugDrawPlayerSprites(screen)
+}
+
+func (g *Game) Layout(_, _ int) (screenWidth, screenHeight int) {
+	return 640, 480
 }
 
 func (g *Game) Delete() error {

@@ -39,7 +39,6 @@ func main() {
 
 	g := game.New(serverAddress, tcpPort, udpPort, log)
 
-	ebiten.SetWindowSize(1600, 900)
 	ebiten.SetWindowTitle("Final Year Project")
 	ebiten.SetWindowResizingMode(ebiten.WindowResizingModeEnabled)
 	ebiten.SetFullscreen(true)
