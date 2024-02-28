@@ -5,15 +5,6 @@ ROOT := $(shell pwd)
 LOGS_DIR := $(ROOT)/logs/$(DATE)/$(TIME)
 BUILD_DIR := $(ROOT)/build
 
-# server environment variables
-export TCP_PORT := 8000
-export UDP_PORT := 8001
-
-# game environment variables
-export SERVER_ADDRESS := 127.0.0.1
-export SERVER_TCP_PORT := $(TCP_PORT)
-export SERVER_UDP_PORT := $(UDP_PORT)
-
 .PHONY: all
 
 install_formatter:

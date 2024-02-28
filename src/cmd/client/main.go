@@ -4,6 +4,7 @@ import (
 	"os"
 
 	"fyp/src/cmd/client/game"
+	"fyp/src/common/utils/env"
 	"fyp/src/common/utils/logging"
 
 	ebiten "github.com/hajimehoshi/ebiten/v2"
@@ -12,9 +13,12 @@ import (
 var log = logging.NewClient()
 
 func main() {
-	tcpPort := ""
-	udpPort := ""
-	serverAddress := ""
+	if _, err := env.LoadEnv(); err != nil {
+		log.Error(err.Error())
+		os.Exit(1)
+	}
+
+	var tcpPort, udpPort, serverAddress string
 
 	if _p, isPresent := os.LookupEnv("SERVER_ADDRESS"); isPresent {
 		serverAddress = _p

@@ -26,17 +26,6 @@ SERVER_SRC = os.path.normpath(f"{SRC_DIR}/server")
 if platform.uname().release.endswith("microsoft-standard-WSL2"):
     os.environ["GOOS"] = "linux"
 
-# server environment variables
-SERVER_ENV = os.environ.copy()
-SERVER_ENV["TCP_PORT"] = "8080"
-SERVER_ENV["UDP_PORT"] = "8081"
-
-# game environment variables
-CLIENT_ENV = os.environ.copy()
-CLIENT_ENV["SERVER_ADDRESS"] = "127.0.0.1"
-CLIENT_ENV["SERVER_TCP_PORT"] = SERVER_ENV["TCP_PORT"]
-CLIENT_ENV["SERVER_UDP_PORT"] = SERVER_ENV["UDP_PORT"]
-
 ext = ".exe" if os.name == "nt" else ""
 
 
@@ -102,11 +91,9 @@ def run_game(skip_prerun=False, wait_for_exit=True, pipe_logs=True, skip_build=F
     if pipe_logs:
         log_file = os.path.normpath(f"{LOGS_DIR}/game.log")
         with open(log_file, "+w") as log_file:
-            process = subprocess.Popen(
-                [game_bin], stdout=log_file, stderr=log_file, env=CLIENT_ENV
-            )
+            process = subprocess.Popen([game_bin], stdout=log_file, stderr=log_file)
     else:
-        process = subprocess.Popen([game_bin], env=CLIENT_ENV)
+        process = subprocess.Popen([game_bin])
 
     if wait_for_exit:
         process.wait()
@@ -127,11 +114,11 @@ def run_server(
     if pipe_logs:
         log_file = os.path.normpath(f"{LOGS_DIR}/server.log")
         with open(log_file, "+w") as log_file:
-            process = subprocess.Popen(
-                server_bin, stdout=log_file, stderr=log_file, env=SERVER_ENV
-            )
+            process = subprocess.Popen(server_bin, stdout=log_file, stderr=log_file)
     else:
-        process = subprocess.Popen(server_bin, env=SERVER_ENV)
+        process = subprocess.Popen(
+            server_bin,
+        )
 
     if wait_for_exit:
         process.wait()

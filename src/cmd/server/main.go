@@ -9,6 +9,7 @@ import (
 	"syscall"
 
 	"fyp/src/cmd/server/handlers"
+	"fyp/src/common/utils/env"
 	"fyp/src/common/utils/logging"
 )
 
@@ -32,8 +33,12 @@ func makeParallel(functions ...func() error) {
 }
 
 func main() {
-	var tcpPortStr string
-	var udpPortStr string
+	if _, err := env.LoadEnv(); err != nil {
+		log.Error(err.Error())
+		os.Exit(1)
+	}
+
+	var tcpPortStr, udpPortStr string
 	gracefulCloseChannel := make(chan interface{})
 
 	if _p, isPresent := os.LookupEnv("TCP_PORT"); isPresent {
