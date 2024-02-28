@@ -5,19 +5,30 @@ import (
 	"errors"
 	"fmt"
 
+	"fyp/src/common/ctypes"
 	typedsockets "fyp/src/common/utils/net/typed-sockets"
+
+	"github.com/google/uuid"
 )
 
 type serverPing string
 
-const ServerPing serverPing = "ping"
+const (
+	ServerPing serverPing = "ping"
+)
+
+var UnknownClientID = uuid.NullUUID{Valid: false}
 
 type State struct {
-	ClientUDPPort string `json:"client_udp_port,omitempty"`
-	ClientReady   bool   `json:"client_is_ready,omitempty"`
+	ClientUDPPort       string        `json:"client_udp_port,omitempty"`
+	ClientReady         bool          `json:"client_is_ready,omitempty"`
+	ClientID            uuid.NullUUID `json:"client_id,omitempty"`
+	ClientSlot          int           `json:"client_slot,omitempty"`
+	ClientDisconnecting bool          `json:"client_is_disconnecting,omitempty"`
 
-	ServerPing    serverPing `json:"ping_message,omitempty"`
-	ServerMessage string     `json:"server_message,omitempty"`
+	ServerPing    serverPing               `json:"ping_message,omitempty"`
+	ServerMessage string                   `json:"server_message,omitempty"`
+	Players       map[string]ctypes.Player `json:"players,omitempty"`
 }
 
 // Check that `State` corrrectly implements `typedsockets.Convertable` and `fmt.Stringer`.
@@ -27,7 +38,16 @@ var (
 )
 
 func Empty() State {
-	return State{}
+	return State{Players: make(map[string]ctypes.Player)}
+}
+
+func (s *State) IsEmpty() bool {
+	return (s.ClientUDPPort == "" &&
+		!s.ClientReady &&
+		s.ServerPing == "" &&
+		s.ServerMessage == "" &&
+		s.ClientID == UnknownClientID &&
+		s.Players == nil)
 }
 
 // Turn the current `State` and marshal it into JSON.

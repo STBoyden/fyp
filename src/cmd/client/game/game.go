@@ -2,17 +2,19 @@ package game
 
 import (
 	"fmt"
+	"net"
+	"strings"
+
 	"fyp/src/common/ctypes"
 	"fyp/src/common/state"
 	"fyp/src/common/utils/logging"
-	"net"
-	"strings"
 
 	typedsockets "fyp/src/common/utils/net/typed-sockets"
 
 	ebitenui "github.com/ebitenui/ebitenui"
 	"github.com/ebitenui/ebitenui/widget"
 	"github.com/golang/freetype/truetype"
+	"github.com/google/uuid"
 	ebiten "github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 	"golang.org/x/image/font"
@@ -42,6 +44,7 @@ type Game struct {
 
 	stateChannel chan state.State
 	state        state.State
+	clientID     uuid.NullUUID
 }
 
 func New(
@@ -56,6 +59,7 @@ func New(
 		logger:              logger,
 		udpCloseLoopChannel: make(chan interface{}),
 		stateChannel:        make(chan state.State),
+		clientID:            uuid.NullUUID{Valid: false},
 	}
 }
 
@@ -136,6 +140,36 @@ func (g *Game) init() error {
 		g.udpIsConnected = true
 	}
 
+	receivedState := state.Empty()
+
+	go func() {
+		for {
+			if _, err := g.udpConn.Write(state.State{ClientReady: true}); err != nil {
+				if strings.Contains(err.Error(), "connection refused") {
+					g.logger.Warnf("Exiting due to unavailable server: %s", err.Error())
+					break
+				}
+
+				g.logger.Warnf("Couldn't send ready message to server: %s", err.Error())
+				continue
+			}
+
+			size, _, err := g.rxUDPSocketConn.ReadFrom(&receivedState)
+			if err != nil {
+				if strings.Contains(err.Error(), "use of closed network connection") {
+					g.logger.Warn("[UDP-RX] Closed")
+					break
+				}
+
+				continue
+			}
+
+			g.logger.Infof("[UDP-RX] Received %d bytes from server: %s", size, receivedState)
+			g.stateChannel <- receivedState
+			break
+		}
+	}()
+
 	if err := g.initUI(); err != nil {
 		return err
 	}
@@ -143,14 +177,6 @@ func (g *Game) init() error {
 	if err := g.spritesheet.Load(); err != nil {
 		return err
 	}
-
-	position := ctypes.NewPosition(0, 100.0)
-	player, err := ctypes.NewPlayer(ctypes.PlayerBlue, &g.spritesheet, &position)
-	if err != nil {
-		return err
-	}
-
-	g.localPlayer = *player
 
 	return nil
 }
@@ -184,48 +210,40 @@ func (g *Game) Update() error {
 	go func() {
 		<-g.udpCloseLoopChannel
 		g.logger.Infof("[UDP-RX] Stopping...")
-		g.rxUDPSocketConn.Close()
-	}()
 
-	go func() {
-		receivedState := state.Empty()
+		defer g.udpConn.Close()
+		defer g.rxUDPSocketConn.Close()
 
-		for {
-			if _, err := g.udpConn.Write(state.State{ClientReady: true}); err != nil {
-				if strings.Contains(err.Error(), "connection refused") {
-					g.logger.Warnf("Exiting due to unavailable server: %s", err.Error())
-					break
-				}
-
-				g.logger.Warnf("Couldn't send ready message to server: %s", err.Error())
-				continue
-			}
-
-			size, _, err := g.rxUDPSocketConn.ReadFrom(&receivedState)
-			if err != nil {
-				if strings.Contains(err.Error(), "use of closed network connection") {
-					g.logger.Warn("[UDP-RX] Closed")
-					break
-				}
-
-				continue
-			}
-
-			g.logger.Infof("[UDP-RX] Received %d bytes from server: %s", size, receivedState)
-			g.stateChannel <- receivedState
+		if _, err := g.udpConn.Write(state.State{ClientID: g.clientID, ClientDisconnecting: true}); err != nil {
+			g.logger.Warnf("[UDP-TX] Could not warn server of disconnection: %s", err)
 		}
 	}()
 
 	select {
 	case s := <-g.stateChannel:
 		g.state = s
+		g.clientID = s.ClientID
+		position := ctypes.NewPosition(0, 100.0)
+		player, err := ctypes.NewPlayer(ctypes.PlayerColour(s.ClientSlot), &g.spritesheet, &position)
+		if err != nil {
+			return err
+		}
+
+		g.localPlayer = *player
 	default:
 	}
 
 	return nil
 }
 
-func (g *Game) UpdateServer() {
+func (g Game) UpdateServer() {
+	players := make(map[string]ctypes.Player)
+	players[g.localPlayer.PlayerSpriteIndex.String()] = g.localPlayer
+
+	_, err := g.udpConn.Write(state.State{ClientID: g.clientID, Players: players})
+	if err != nil {
+		g.logger.Errorf("error updating server's version of this player via UDP: %s", err.Error())
+	}
 }
 
 func (g *Game) DebugDrawPlayerSprites(image *ebiten.Image) {
@@ -250,6 +268,8 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	g.DebugDrawPlayerSprites(screen)
 
 	g.localPlayer.Draw(screen)
+
+	go g.UpdateServer()
 }
 
 func (g *Game) Layout(_, _ int) (screenWidth, screenHeight int) {
@@ -262,7 +282,6 @@ func (g *Game) Delete() error {
 	}
 
 	if g.udpIsConnected {
-		g.udpConn.Close()
 		g.udpCloseLoopChannel <- nil
 	}
 

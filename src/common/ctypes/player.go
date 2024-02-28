@@ -129,14 +129,14 @@ func (direction *playerDirection) String() string {
 	return str
 }
 
-func (direction *playerDirection) MarshalJSON() ([]byte, error) {
+func (direction playerDirection) MarshalJSON() ([]byte, error) {
 	var str string
 
-	switch *direction {
+	switch direction {
 	case playerDirectionLeft, playerDirectionRight:
-		str = direction.String()
+		str = fmt.Sprintf("%q", direction.String())
 	default:
-		return nil, fmt.Errorf("playerDirection marshal error: invalid input %d (%s)", direction, direction.String())
+		return nil, fmt.Errorf("playerDirection marshal error: invalid input %s", direction.String())
 	}
 
 	return []byte(str), nil
@@ -146,9 +146,9 @@ func (direction *playerDirection) UnmarshalJSON(data []byte) error {
 	str := string(data)
 
 	switch str {
-	case "0", "false", "left":
+	case "0", "false", "\"left\"":
 		*direction = playerDirectionLeft
-	case "1", "true", "right":
+	case "1", "true", "\"right\"":
 		*direction = playerDirectionRight
 	default:
 		return fmt.Errorf("playerDirection unmarshal error: invalid input %s", str)
@@ -193,7 +193,7 @@ func NewPlayer(spriteIndex PlayerColour, spritesheet *Spritesheet, position *Pos
 	}
 
 	matrix := ebiten.GeoM{}
-	matrix.Translate(position.X(), position.Y())
+	matrix.Translate(position.X, position.Y)
 
 	return &Player{
 		Position:          *position,
@@ -252,12 +252,13 @@ func (p *Player) Update() {
 
 	if didMove {
 		// p.geoMatrix.Scale(, 2)
-		p.geoMatrix.Translate(p.Position.X(), p.Position.Y())
+		p.geoMatrix.Translate(p.Position.X, p.Position.Y)
 	}
 }
 
 func (p *Player) Draw(screen *ebiten.Image) {
-	op := &ebiten.DrawImageOptions{GeoM: p.geoMatrix}
-
-	screen.DrawImage(p.frames[p.playerAnimationFrame], op)
+	if p.frames != nil {
+		op := &ebiten.DrawImageOptions{GeoM: p.geoMatrix}
+		screen.DrawImage(p.frames[p.playerAnimationFrame], op)
+	}
 }

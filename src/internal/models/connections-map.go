@@ -14,13 +14,13 @@ type typedConnections interface {
 
 type ConnectionsMap[T typedConnections] struct {
 	connections map[string]*T
-	mutex       sync.Mutex
+	mutex       sync.RWMutex
 }
 
 func NewConnectionsMap[T typedConnections]() *ConnectionsMap[T] {
 	return &ConnectionsMap[T]{
 		connections: map[string]*T{},
-		mutex:       sync.Mutex{},
+		mutex:       sync.RWMutex{},
 	}
 }
 
@@ -42,6 +42,13 @@ func (cm *ConnectionsMap[T]) DeleteConnection(source string) {
 	defer cm.mutex.Unlock()
 
 	delete(cm.connections, source)
+}
+
+func (cm *ConnectionsMap[T]) ContainsConnection(source string) bool {
+	cm.mutex.RLock()
+	defer cm.mutex.RUnlock()
+
+	return cm.connections[source] != nil
 }
 
 type ConnectionsMapIterType[T typedConnections] struct {

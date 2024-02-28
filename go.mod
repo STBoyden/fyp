@@ -1,6 +1,6 @@
 module fyp
 
-go 1.21.6
+go 1.22.0
 
 require (
 	github.com/TwiN/go-color v1.4.1
@@ -14,6 +14,7 @@ require golang.org/x/exp v0.0.0-20230817173708-d852ddb80c63 // indirect
 
 require (
 	github.com/ebitengine/purego v0.5.0 // indirect
+	github.com/google/uuid v1.6.0
 	github.com/jezek/xgb v1.1.0 // indirect
 	golang.org/x/exp/shiny v0.0.0-20230817173708-d852ddb80c63 // indirect
 	golang.org/x/mobile v0.0.0-20230922142353-e2f452493d57 // indirect

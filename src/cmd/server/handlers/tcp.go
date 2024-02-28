@@ -14,16 +14,18 @@ import (
 type ErrorCorrectionHandler struct {
 	Handler
 
+	serverState    *models.ServerState
 	logger         *logging.Logger
 	connectionsMap *models.ConnectionsMap[typedsockets.TCPTypedConnection[state.State]]
 	socket         *typedsockets.TCPSocketListener[state.State]
 	port           int
-	closeChannel   chan interface{}
+	closeChannel   <-chan interface{}
 }
 
-func NewErrorCorrectionHandler(logger *logging.Logger, socket *net.TCPListener, tcpPort int, gracefulCloseChannel chan interface{}) *ErrorCorrectionHandler {
+func NewErrorCorrectionHandler(logger *logging.Logger, serverState *models.ServerState, socket *net.TCPListener, tcpPort int, gracefulCloseChannel <-chan interface{}) *ErrorCorrectionHandler {
 	return &ErrorCorrectionHandler{
 		logger:         logger,
+		serverState:    serverState,
 		connectionsMap: models.NewConnectionsMap[typedsockets.TCPTypedConnection[state.State]](),
 		socket:         typedsockets.NewTypedTCPSocketListener[state.State](socket),
 		port:           tcpPort,
@@ -31,7 +33,7 @@ func NewErrorCorrectionHandler(logger *logging.Logger, socket *net.TCPListener, 
 	}
 }
 
-func (ec ErrorCorrectionHandler) Handle() error {
+func (ec *ErrorCorrectionHandler) Handle() error {
 	ec.logger.Infof("Started error correction socket (TCP) on %d\n", ec.port)
 	exitChan := make(chan bool)
 
@@ -61,11 +63,7 @@ func (ec ErrorCorrectionHandler) Handle() error {
 		}
 	}()
 
-	for {
-		if <-exitChan {
-			break
-		}
-
+	for !<-exitChan {
 		for pair := range ec.connectionsMap.Iter() {
 			conn := pair.Conn
 			id := pair.ID

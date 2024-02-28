@@ -11,6 +11,7 @@ import (
 	"fyp/src/cmd/server/handlers"
 	"fyp/src/common/utils/env"
 	"fyp/src/common/utils/logging"
+	"fyp/src/internal/models"
 )
 
 var log = logging.NewServer()
@@ -39,6 +40,7 @@ func main() {
 	}
 
 	var tcpPortStr, udpPortStr string
+	serverState, serverStateUpdatedChannel := models.NewServerState()
 	gracefulCloseChannel := make(chan interface{})
 
 	if _p, isPresent := os.LookupEnv("TCP_PORT"); isPresent {
@@ -72,7 +74,7 @@ func main() {
 		return
 	}
 
-	errorCorrectionHandler := handlers.NewErrorCorrectionHandler(log, errorCorrectionSocket, tcpPort, gracefulCloseChannel)
+	errorCorrectionHandler := handlers.NewErrorCorrectionHandler(log, serverState, errorCorrectionSocket, tcpPort, gracefulCloseChannel)
 	correctionSocketFunc := errorCorrectionHandler.Handle
 
 	// Handle UDP connections to the server.
@@ -83,8 +85,12 @@ func main() {
 		return
 	}
 
-	gameLogicHandler := handlers.NewGameHandler(log, gameSocket, addr, udpPort, gracefulCloseChannel)
+	gameLogicHandler := handlers.NewGameHandler(log, serverState, gameSocket, addr, udpPort, gracefulCloseChannel)
 	gameSocketFunc := gameLogicHandler.Handle
+
+	stateHandler := handlers.NewStateHandler(log, serverState, serverStateUpdatedChannel, gracefulCloseChannel)
+	stateFunc := stateHandler.Handle
+	handlerFunctions := []func() error{correctionSocketFunc, gameSocketFunc, stateFunc}
 
 	signalChannel := make(chan os.Signal, 2)
 	signal.Notify(signalChannel, os.Interrupt, syscall.SIGTERM)
@@ -92,8 +98,9 @@ func main() {
 		for s := range signalChannel {
 			if s == os.Interrupt || s == syscall.SIGTERM {
 				log.Infof("[SIGNAL HANDLER] Received %s signal, gracefully shutting down", s.String())
-				gracefulCloseChannel <- nil
-				gracefulCloseChannel <- nil
+				for range len(handlerFunctions) {
+					gracefulCloseChannel <- nil
+				}
 				break
 			}
 		}
@@ -101,6 +108,6 @@ func main() {
 		return nil
 	}
 
-	makeParallel(gameSocketFunc, correctionSocketFunc, signalFunc)
+	makeParallel(append(handlerFunctions, signalFunc)...)
 	log.Info("Exited")
 }
