@@ -2,12 +2,11 @@ package game
 
 import (
 	"fmt"
-	"net"
-	"strings"
-
 	"fyp/src/common/ctypes"
 	"fyp/src/common/state"
 	"fyp/src/common/utils/logging"
+	"net"
+	"strings"
 
 	typedsockets "fyp/src/common/utils/net/typed-sockets"
 
@@ -20,15 +19,10 @@ import (
 	"golang.org/x/image/font/gofont/goregular"
 )
 
-const (
-	spriteSize  = 15
-	spriteSizeF = float64(spriteSize)
-)
-
 type Game struct {
 	ui          *ebitenui.UI
 	font        font.Face
-	spritesheet Spritesheet
+	spritesheet ctypes.Spritesheet
 	localPlayer ctypes.Player
 
 	initialised bool
@@ -150,6 +144,14 @@ func (g *Game) init() error {
 		return err
 	}
 
+	position := ctypes.NewPosition(0, 100.0)
+	player, err := ctypes.NewPlayer(ctypes.PlayerBlue, &g.spritesheet, &position)
+	if err != nil {
+		return err
+	}
+
+	g.localPlayer = *player
+
 	return nil
 }
 
@@ -227,7 +229,7 @@ func (g *Game) UpdateServer() {
 }
 
 func (g *Game) DebugDrawPlayerSprites(image *ebiten.Image) {
-	for playerIndex := 0; playerIndex < 4; playerIndex++ {
+	for playerIndex := ctypes.PlayerMinColour; playerIndex < ctypes.PlayerMaxColour; playerIndex++ {
 		playerSprites, err := g.spritesheet.GetPlayer(playerIndex)
 		if err != nil {
 			g.logger.Error(err.Error())
@@ -235,7 +237,7 @@ func (g *Game) DebugDrawPlayerSprites(image *ebiten.Image) {
 
 		for index, sprite := range playerSprites {
 			op := &ebiten.DrawImageOptions{}
-			op.GeoM.Translate(float64(index)*spriteSizeF, 100+((spriteSizeF+1.0)*float64(playerIndex)))
+			op.GeoM.Translate(float64(index)*ctypes.SpriteSizeF, 100+((ctypes.SpriteSizeF+1.0)*float64(playerIndex)))
 			op.GeoM.Scale(2, 2)
 			image.DrawImage(sprite, op)
 		}
@@ -246,6 +248,8 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	ebitenutil.DebugPrint(screen, fmt.Sprintf("%.0f FPS", ebiten.ActualFPS()))
 	ebitenutil.DebugPrintAt(screen, g.state.ServerMessage, screen.Bounds().Dx()/2, screen.Bounds().Dy()/2)
 	g.DebugDrawPlayerSprites(screen)
+
+	g.localPlayer.Draw(screen)
 }
 
 func (g *Game) Layout(_, _ int) (screenWidth, screenHeight int) {
