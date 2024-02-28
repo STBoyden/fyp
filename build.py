@@ -19,8 +19,8 @@ LOGS_DIR = os.path.normpath(f"{ROOT}/logs/{DATE}/{TIME}")
 BUILD_DIR = os.path.normpath(f"{ROOT}/build")
 
 SRC_DIR = os.path.normpath(f"{ROOT}/src")
-GAME_SRC = os.path.normpath(f"{SRC_DIR}/game")
-SERVER_SRC = os.path.normpath(f"{SRC_DIR}/server")
+GAME_SRC = os.path.normpath(f"{SRC_DIR}/cmd/client")
+SERVER_SRC = os.path.normpath(f"{SRC_DIR}/cmd/server")
 
 # if we're on wsl2, then we have to manually make sure that the GOOS environment variable is set to Linux
 if platform.uname().release.endswith("microsoft-standard-WSL2"):
