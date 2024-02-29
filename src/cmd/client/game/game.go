@@ -35,12 +35,12 @@ type Game struct {
 
 	id                  string
 	serverAddress       string
-	tcpConn             *typedsockets.TCPTypedConnection[state.State]
+	tcpConn             *state.TCPConnection
 	tcpIsConnected      bool
-	udpConn             *typedsockets.UDPTypedConnection[state.State]
+	udpConn             *state.UDPConnection
 	udpIsConnected      bool
 	udpCloseLoopChannel chan interface{}
-	rxUDPSocketConn     *typedsockets.UDPTypedConnection[state.State]
+	rxUDPSocketConn     *state.UDPConnection
 
 	stateChannel chan state.State
 	state        state.State

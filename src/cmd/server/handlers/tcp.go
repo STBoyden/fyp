@@ -16,8 +16,8 @@ type ErrorCorrectionHandler struct {
 
 	serverState    *models.ServerState
 	logger         *logging.Logger
-	connectionsMap *models.ConnectionsMap[typedsockets.TCPTypedConnection[state.State]]
-	socket         *typedsockets.TCPSocketListener[state.State]
+	connectionsMap *models.ConnectionsMap[state.TCPConnection]
+	socket         *state.TCPSocketListener
 	port           int
 	closeChannel   <-chan interface{}
 }
@@ -26,7 +26,7 @@ func NewErrorCorrectionHandler(logger *logging.Logger, serverState *models.Serve
 	return &ErrorCorrectionHandler{
 		logger:         logger,
 		serverState:    serverState,
-		connectionsMap: models.NewConnectionsMap[typedsockets.TCPTypedConnection[state.State]](),
+		connectionsMap: models.NewConnectionsMap[state.TCPConnection](),
 		socket:         typedsockets.NewTypedTCPSocketListener[state.State](socket),
 		port:           tcpPort,
 		closeChannel:   gracefulCloseChannel,

@@ -4,12 +4,10 @@ import (
 	"sync"
 
 	"fyp/src/common/ctypes/state"
-
-	typedsockets "fyp/src/common/utils/net/typed-sockets"
 )
 
 type typedConnections interface {
-	typedsockets.TCPTypedConnection[state.State] | typedsockets.UDPTypedConnection[state.State]
+	state.TCPConnection | state.UDPConnection
 }
 
 type ConnectionsMap[T typedConnections] struct {

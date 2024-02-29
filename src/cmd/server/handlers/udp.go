@@ -17,10 +17,10 @@ import (
 type GameHandler struct {
 	logger          *logging.Logger
 	serverState     *models.ServerState
-	connectionsMap  *models.ConnectionsMap[typedsockets.UDPTypedConnection[state.State]]
+	connectionsMap  *models.ConnectionsMap[state.UDPConnection]
 	connectionSlots map[uuid.UUID]int
 	connectedAmount int
-	socket          typedsockets.UDPTypedConnection[state.State]
+	socket          state.UDPConnection
 	connInfo        netip.AddrPort
 	closeChannel    <-chan interface{}
 	exitChannel     chan bool
@@ -32,7 +32,7 @@ func NewGameHandler(logger *logging.Logger, serverState *models.ServerState, soc
 	return &GameHandler{
 		logger:          logger,
 		serverState:     serverState,
-		connectionsMap:  models.NewConnectionsMap[typedsockets.UDPTypedConnection[state.State]](),
+		connectionsMap:  models.NewConnectionsMap[state.UDPConnection](),
 		socket:          typedsockets.NewUDPTypedConnection[state.State](socket),
 		connInfo:        netip.AddrPortFrom(udpHost.AddrPort().Addr(), uint16(udpPort)),
 		closeChannel:    gracefulCloseChannel,
