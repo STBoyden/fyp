@@ -45,7 +45,7 @@ func main() {
 
 	ebiten.SetWindowTitle("Final Year Project")
 	ebiten.SetWindowResizingMode(ebiten.WindowResizingModeEnabled)
-	ebiten.SetFullscreen(true)
+	// ebiten.SetFullscreen(true)
 	ebiten.SetVsyncEnabled(true)
 
 	log.Info("Starting game...")
