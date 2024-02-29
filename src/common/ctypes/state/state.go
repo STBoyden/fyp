@@ -1,3 +1,6 @@
+/*
+state provides the State object that is used by both cmd/client and cmd/server.
+*/
 package state
 
 import (
@@ -19,6 +22,12 @@ const (
 
 var UnknownClientID = uuid.NullUUID{Valid: false}
 
+/*
+state.State is a common object that is shared between both the client and the server over
+the TCP and UDP connections. state.State implements typedscockets.Convertable in the case
+that the specific (de)serialisation format is changed in the future without changing the
+state.State API.
+*/
 type State struct {
 	ClientUDPPort       string        `json:"client_udp_port,omitempty"`
 	ClientReady         bool          `json:"client_is_ready,omitempty"`
@@ -37,6 +46,18 @@ var (
 	_ fmt.Stringer             = State{}
 )
 
+/*
+Type aliases for typedsockets types to reduce code noise.
+*/
+type (
+	UDPConnection     = typedsockets.UDPTypedConnection[State]
+	TCPConnection     = typedsockets.TCPTypedConnection[State]
+	TCPSocketListener = typedsockets.TCPSocketListener[State]
+)
+
+/*
+Empty returns an empty State with a non-nil Players field.
+*/
 func Empty() State {
 	return State{Players: make(map[string]ctypes.Player)}
 }
@@ -50,12 +71,15 @@ func (s *State) IsEmpty() bool {
 		s.Players == nil)
 }
 
-// Turn the current `State` and marshal it into JSON.
+// Marshal is a wrapper over json.Marshal to implement typedsockets.Convertable.
 func (s State) Marshal() ([]byte, error) {
 	return json.Marshal(s)
 }
 
-// Overwrites the current `State` with the JSON `data`.
+/*
+Unmarshal is a wrapper over json.Unmarshal that checks the type of v to only be of
+type *State.
+*/
 func (State) Unmarshal(v any, data []byte) error {
 	if v, ok := v.(*State); ok {
 		err := json.Unmarshal(data, &v)

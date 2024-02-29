@@ -13,9 +13,17 @@ install_formatter:
 install_linter:
 	@curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $$(go env GOPATH)/bin v1.56.2
 
+install_godoc:
+	@go install golang.org/x/tools/cmd/godoc@latest
+
 install_tools: install_formatter install_linter
 
 check: fmt lint
+
+doc:
+	@echo "Documentation hosted on http://127.0.0.1:3000/pkg/fyp/src/"
+	@echo
+	@godoc -index -http=:3000
 
 pre:
 	@./scripts/pre

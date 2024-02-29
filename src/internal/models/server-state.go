@@ -4,13 +4,13 @@ import (
 	"sync"
 
 	"fyp/src/common/ctypes"
-	"fyp/src/common/state"
+	"fyp/src/common/ctypes/state"
 )
 
 type ServerState struct {
 	mutex          sync.RWMutex
 	state          state.State
-	updatedChannel chan<- string
+	updatedChannel <-chan string
 }
 
 func NewServerState() (s *ServerState, u <-chan string) {

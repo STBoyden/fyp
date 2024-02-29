@@ -3,7 +3,7 @@ package models
 import (
 	"sync"
 
-	"fyp/src/common/state"
+	"fyp/src/common/ctypes/state"
 
 	typedsockets "fyp/src/common/utils/net/typed-sockets"
 )
@@ -56,12 +56,18 @@ type ConnectionsMapIterType[T typedConnections] struct {
 	Conn T
 }
 
-func (cm *ConnectionsMap[T]) Iter() chan ConnectionsMapIterType[T] {
+/*
+Iter allows for doing a `for-range` loop over the connections map inside the
+ConnectionsMap struct. The loop holds a lock for the entirety of the contents
+of the map, thus more entries will increase the amount of time this function
+keeps the lock.
+*/
+func (cm *ConnectionsMap[T]) Iter() <-chan ConnectionsMapIterType[T] {
 	iterChannel := make(chan ConnectionsMapIterType[T])
 
 	go func() {
-		cm.mutex.Lock()
-		defer cm.mutex.Unlock()
+		cm.mutex.RLock()
+		defer cm.mutex.RUnlock()
 
 		for key, value := range cm.connections {
 			value := *value

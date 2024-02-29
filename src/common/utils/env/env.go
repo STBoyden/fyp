@@ -1,3 +1,6 @@
+/*
+env is a general-purpose package to load environment variables from files.
+*/
 package env
 
 import (

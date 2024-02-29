@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"fyp/src/common/ctypes"
-	"fyp/src/common/state"
+	"fyp/src/common/ctypes/state"
 	"fyp/src/common/utils/logging"
 
 	typedsockets "fyp/src/common/utils/net/typed-sockets"

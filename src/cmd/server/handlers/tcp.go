@@ -4,7 +4,7 @@ import (
 	"net"
 	"strings"
 
-	"fyp/src/common/state"
+	"fyp/src/common/ctypes/state"
 	"fyp/src/common/utils/logging"
 	"fyp/src/internal/models"
 
