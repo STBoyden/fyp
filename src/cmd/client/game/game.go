@@ -247,7 +247,7 @@ func (g Game) UpdateServer() {
 }
 
 func (g *Game) DebugDrawPlayerSprites(image *ebiten.Image) {
-	for playerIndex := ctypes.PlayerMinColour; playerIndex < ctypes.PlayerMaxColour; playerIndex++ {
+	for playerIndex := ctypes.PlayerMinColour; playerIndex <= ctypes.PlayerMaxColour; playerIndex++ {
 		playerSprites, err := g.spritesheet.GetPlayer(playerIndex)
 		if err != nil {
 			g.logger.Error(err.Error())
