@@ -52,13 +52,16 @@ shutil.copytree("resources", "dist/resources", dirs_exist_ok=True)
 shutil.copyfile(".env.example", "dist/.env")
 
 extension = ".exe" if args.target_platform == "windows" else ""
+mod_command = "go mod tidy"
 build_command = f"go build -o dist/game{extension} {SRC_DIR}/main.go"
 
 env = os.environ.copy()
 env["GOOS"] = args.target_platform if args.target_platform != "macos" else "darwin"
 
-print(f'Running "{build_command}" with GOOS env as "{env["GOOS"]}"...')
+print(f'Running "{mod_command}" with GOOS env as "{env["GOOS"]}"...')
+subprocess.run(mod_command.split(), env=env)
 
+print(f'Running "{build_command}" with GOOS env as "{env["GOOS"]}"...')
 subprocess.run(build_command.split(), env=env)
 
 archive_name = f"fyp-build-{args.target_platform}.zip"
@@ -67,7 +70,7 @@ if os.path.isfile(archive_name):
     os.remove(archive_name)
 
 compress_command = (
-    f"powershell Compress-Archive . ../{archive_name}"
+    f"powershell Compress-Archive * ..\\{archive_name}"
     if os.name == "nt"
     else f"zip -r ../{archive_name} ."
 )
