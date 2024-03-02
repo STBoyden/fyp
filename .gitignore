@@ -1,5 +1,8 @@
 /build
 /logs
+/dist
+
+fyp-build-*.zip
 
 go.work.sum
 .DS_STORE
