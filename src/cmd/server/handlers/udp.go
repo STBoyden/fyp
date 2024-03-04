@@ -139,7 +139,7 @@ outer:
 
 			// TODO Logic with sending the game updates and logic here.
 			gh.logger.Infof("[UDP] Sending 'hello' message and new ID to client at %s:%s", clientIP, clientPort)
-			_, err = clientConn.Write(state.State{ServerMessage: "Hello, world!", ClientSlot: slot, ClientID: uuid.NullUUID{UUID: id, Valid: true}})
+			_, err = clientConn.Write(state.WithNewClientConnection(id, slot))
 			if err != nil {
 				gh.logger.Errorf("[UDP] Couldn't send to client: %s", err.Error())
 				return err

@@ -124,7 +124,7 @@ func (g *Game) init() error {
 		portColonIndex := strings.LastIndex(localAddress, ":")
 		portStr := localAddress[portColonIndex+1:]
 
-		s := state.State{ClientUDPPort: portStr}
+		s := state.WithClientUDPPort(portStr)
 
 		bytesWritten, err := conn.Write(s)
 		if err != nil {
@@ -144,7 +144,7 @@ func (g *Game) init() error {
 
 	go func() {
 		for {
-			if _, err := g.udpConn.Write(state.State{ClientReady: true}); err != nil {
+			if _, err := g.udpConn.Write(state.WithClientReady()); err != nil {
 				if strings.Contains(err.Error(), "connection refused") {
 					g.logger.Warnf("Exiting due to unavailable server: %s", err.Error())
 					break
@@ -214,7 +214,7 @@ func (g *Game) Update() error {
 		defer g.udpConn.Close()
 		defer g.rxUDPSocketConn.Close()
 
-		if _, err := g.udpConn.Write(state.State{ClientID: g.clientID, ClientDisconnecting: true}); err != nil {
+		if _, err := g.udpConn.Write(state.WithClientDisconnecting(g.clientID)); err != nil {
 			g.logger.Warnf("[UDP-TX] Could not warn server of disconnection: %s", err)
 		}
 	}()
@@ -237,10 +237,7 @@ func (g *Game) Update() error {
 }
 
 func (g Game) UpdateServer() {
-	players := make(map[string]ctypes.Player)
-	players[g.localPlayer.PlayerSpriteIndex.String()] = g.localPlayer
-
-	_, err := g.udpConn.Write(state.State{ClientID: g.clientID, Players: players})
+	_, err := g.udpConn.Write(state.WithUpdatedPlayerState(g.clientID, g.localPlayer))
 	if err != nil {
 		g.logger.Errorf("error updating server's version of this player via UDP: %s", err.Error())
 	}

@@ -3,6 +3,10 @@ state provides the State object that is used by both cmd/client and cmd/server.
 */
 package state
 
+/*
+TODO: Finish documentation.
+*/
+
 import (
 	"encoding/json"
 	"errors"
@@ -14,10 +18,8 @@ import (
 	"github.com/google/uuid"
 )
 
-type serverPing string
-
 const (
-	ServerPing serverPing = "ping"
+	serverPing = "ping"
 )
 
 var UnknownClientID = uuid.NullUUID{Valid: false}
@@ -35,9 +37,44 @@ type State struct {
 	ClientSlot          int           `json:"client_slot,omitempty"`
 	ClientDisconnecting bool          `json:"client_is_disconnecting,omitempty"`
 
-	ServerPing    serverPing               `json:"ping_message,omitempty"`
+	ServerPing    string                   `json:"ping_message,omitempty"`
 	ServerMessage string                   `json:"server_message,omitempty"`
 	Players       map[string]ctypes.Player `json:"players,omitempty"`
+}
+
+/*
+WithUpdatedPlayerState returns a state.State that contains the player data from
+ctypes.Player so that it can be used to update the server's version of this client.
+*/
+func WithUpdatedPlayerState(clientID uuid.NullUUID, playerState ctypes.Player) State {
+	players := make(map[string]ctypes.Player)
+	players[playerState.PlayerSpriteIndex.String()] = playerState
+
+	return State{ClientID: clientID, Players: players}
+}
+
+func WithClientUDPPort(clientUDPPort string) State {
+	return State{ClientUDPPort: clientUDPPort}
+}
+
+func WithClientDisconnecting(clientID uuid.NullUUID) State {
+	return State{ClientID: clientID, ClientDisconnecting: true}
+}
+
+func WithNewClientConnection(newClientID uuid.UUID, clientSlot int) State {
+	return State{
+		ServerMessage: "Hello, world!",
+		ClientSlot:    clientSlot,
+		ClientID:      uuid.NullUUID{UUID: newClientID, Valid: true},
+	}
+}
+
+func WithClientReady() State {
+	return State{ClientReady: true}
+}
+
+func WithServerPing() State {
+	return State{ServerPing: serverPing}
 }
 
 // Check that `State` corrrectly implements `typedsockets.Convertable` and `fmt.Stringer`.

@@ -68,7 +68,7 @@ func (ec *ErrorCorrectionHandler) Handle() error {
 			conn := pair.Conn
 			id := pair.ID
 
-			if _, err := conn.Write(state.State{ServerPing: state.ServerPing}); err == nil {
+			if _, err := conn.Write(state.WithServerPing()); err == nil {
 				continue
 			}
 
