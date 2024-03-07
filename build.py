@@ -34,7 +34,16 @@ def clean():
     shutil.rmtree(BUILD_DIR)
 
 
+def generate_resources():
+    cmd = "go generate resources/resources_gen.go"
+
+    print(f'[GENERATE RESOURCES] Running "{cmd}"...')
+    subprocess.run(cmd.split())
+
+
 def prebuild():
+    generate_resources()
+
     if not os.path.exists(BUILD_DIR):
         os.makedirs(BUILD_DIR)
         print(f"[PREBUILD] Created '{BUILD_DIR}'")

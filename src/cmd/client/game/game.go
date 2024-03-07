@@ -5,6 +5,7 @@ import (
 	"net"
 	"strings"
 
+	"fyp/resources"
 	"fyp/src/common/ctypes"
 	"fyp/src/common/ctypes/state"
 	"fyp/src/common/utils/logging"
@@ -16,6 +17,7 @@ import (
 	"github.com/golang/freetype/truetype"
 	"github.com/google/uuid"
 	ebiten "github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/audio"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 	"golang.org/x/image/font"
 	"golang.org/x/image/font/gofont/goregular"
@@ -26,6 +28,10 @@ type Game struct {
 	font        font.Face
 	spritesheet ctypes.Spritesheet
 	localPlayer ctypes.Player
+
+	audioCtx         *audio.Context
+	audioPlayer      *audio.Player
+	audioMusicVolume float64
 
 	initialised bool
 	tcpPort     string
@@ -51,6 +57,8 @@ func New(
 	serverAddress, tcpPort, udpPort string, logger *logging.Logger,
 ) *Game {
 	return &Game{
+		audioCtx:            audio.NewContext(44100),
+		audioMusicVolume:    0.25,
 		localPlayer:         ctypes.Player{},
 		initialised:         false,
 		serverAddress:       serverAddress,
@@ -178,6 +186,19 @@ func (g *Game) init() error {
 		return err
 	}
 
+	stream, err := resources.GetMusicBgm()
+	if err != nil {
+		return err
+	}
+
+	loop := audio.NewInfiniteLoop(stream, stream.Length())
+	player, err := g.audioCtx.NewPlayer(loop)
+	if err != nil {
+		return err
+	}
+	g.audioPlayer = player
+	g.audioPlayer.SetVolume(g.audioMusicVolume)
+
 	return nil
 }
 
@@ -202,6 +223,10 @@ func (g *Game) Update() error {
 		if err != nil {
 			return err
 		}
+	}
+
+	if !g.audioPlayer.IsPlaying() {
+		g.audioPlayer.Play()
 	}
 
 	g.ui.Update()
@@ -281,6 +306,8 @@ func (g *Game) Delete() error {
 	if g.udpIsConnected {
 		g.udpCloseLoopChannel <- nil
 	}
+
+	g.audioPlayer.Close()
 
 	return nil
 }

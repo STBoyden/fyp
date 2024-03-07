@@ -48,15 +48,24 @@ if os.path.exists("dist"):
     shutil.rmtree("dist")
 
 os.makedirs("dist")
-shutil.copytree("resources", "dist/resources", dirs_exist_ok=True)
+shutil.copytree(
+    "resources",
+    "dist/resources",
+    dirs_exist_ok=True,
+    ignore=shutil.ignore_patterns("*.go"),
+)
 shutil.copyfile(".env.example", "dist/.env")
 
 extension = ".exe" if args.target_platform == "windows" else ""
+generate_command = "go generate resources/resources_gen.go"
 mod_command = "go mod tidy"
 build_command = f"go build -o dist/game{extension} {SRC_DIR}/main.go"
 
 env = os.environ.copy()
 env["GOOS"] = args.target_platform if args.target_platform != "macos" else "darwin"
+
+print(f'Running "{generate_command}" with GOOS env as "{env["GOOS"]}"...')
+subprocess.run(generate_command.split(), env=env)
 
 print(f'Running "{mod_command}" with GOOS env as "{env["GOOS"]}"...')
 subprocess.run(mod_command.split(), env=env)
@@ -72,7 +81,7 @@ if os.path.isfile(archive_name):
 compress_command = (
     f"powershell Compress-Archive * ..\\{archive_name}"
     if os.name == "nt"
-    else f"zip -r ../{archive_name} ."
+    else f"zip -9 -r ../{archive_name} ."
 )
 
 print(f'Running "{compress_command}"...')

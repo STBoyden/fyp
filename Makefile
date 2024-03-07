@@ -39,7 +39,10 @@ all: pre clean build
 clean:
 	rm -rf $(BUILD_DIR)
 
-prebuild: pre
+generate_resources:
+	go generate resources/resources_gen.go
+
+prebuild: generate_resources pre
 	mkdir -p $(BUILD_DIR)
 	go mod tidy
 
@@ -66,9 +69,11 @@ run_server: build_server prerun
 run: build prerun
 	($(BUILD_DIR)/server 2>&1 | tee -a $(LOGS_DIR)/server.log) > /dev/null & disown
 	($(BUILD_DIR)/game 2>&1 | tee -a $(LOGS_DIR)/game.log) > /dev/null
+	@pkill server
 	@echo
 
 run_with_logs: build prerun
 	$(BUILD_DIR)/server & disown
 	$(BUILD_DIR)/game
+	@pkill server
 	@echo

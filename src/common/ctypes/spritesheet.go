@@ -4,10 +4,10 @@ import (
 	"errors"
 	"fmt"
 	"image"
-	_ "image/png" // needed for the ebitenutil.NewImageFromFile
+
+	"fyp/resources"
 
 	"github.com/hajimehoshi/ebiten/v2"
-	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 )
 
 const (
@@ -21,7 +21,7 @@ type Spritesheet struct {
 }
 
 func (sheet *Spritesheet) Load() error {
-	img, _, err := ebitenutil.NewImageFromFile("resources/images/tilemap_transparent_packed.png")
+	img, _, err := resources.GetImgTilemap()
 	if err != nil {
 		return err
 	}

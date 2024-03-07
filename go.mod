@@ -10,7 +10,12 @@ require (
 	golang.org/x/image v0.12.0
 )
 
-require golang.org/x/exp v0.0.0-20230817173708-d852ddb80c63 // indirect
+require (
+	github.com/ebitengine/oto/v3 v3.1.0 // indirect
+	github.com/jfreymuth/oggvorbis v1.0.5 // indirect
+	github.com/jfreymuth/vorbis v1.0.2 // indirect
+	golang.org/x/exp v0.0.0-20230817173708-d852ddb80c63 // indirect
+)
 
 require (
 	github.com/ebitengine/purego v0.5.0 // indirect

@@ -1,0 +1,2 @@
+resources_*.go
+!resources_gen.go
