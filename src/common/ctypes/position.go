@@ -1,8 +1,8 @@
 package ctypes
 
 type Position struct {
-	X float64
-	Y float64
+	X float64 `json:"x,omitempty"`
+	Y float64 `json:"y,omitempty"`
 }
 
 func NewPosition(x, y float64) Position {

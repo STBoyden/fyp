@@ -22,12 +22,28 @@ func (s *ServerState) AddPlayer(name string, player ctypes.Player) {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 
-	s.state.Players[name] = player
+	s.state.Server.Players[name] = player
+}
+
+func (s *ServerState) FilterPlayers(filter func(key string, player ctypes.Player) bool) map[string]ctypes.Player {
+	s.mutex.RLock()
+	defer s.mutex.RUnlock()
+
+	filtered := make(map[string]ctypes.Player)
+	for key, player := range s.state.Server.Players {
+		if !filter(key, player) {
+			continue
+		}
+
+		filtered[key] = player
+	}
+
+	return filtered
 }
 
 func (s *ServerState) GetPlayers() map[string]ctypes.Player {
 	s.mutex.RLock()
 	defer s.mutex.RUnlock()
 
-	return s.state.Players
+	return s.state.Server.Players
 }

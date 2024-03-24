@@ -51,6 +51,7 @@ type Game struct {
 	stateChannel chan state.State
 	state        state.State
 	clientID     uuid.NullUUID
+	clientSlot   int
 }
 
 func New(
@@ -68,6 +69,7 @@ func New(
 		udpCloseLoopChannel: make(chan interface{}),
 		stateChannel:        make(chan state.State),
 		clientID:            uuid.NullUUID{Valid: false},
+		clientSlot:          0,
 	}
 }
 
@@ -143,16 +145,45 @@ func (g *Game) init() error {
 		g.logger.Debugf("[UDP NET-INIT] Wrote %d bytes to server at %s: %s", bytesWritten, conn.RemoteAddr().String(), s)
 		g.logger.Debugf("[UDP NET-INIT] Local addr: %s", conn.LocalAddr().String())
 
+		type chanFields struct {
+			State *state.State
+			Error error
+		}
+
+		initStateChan := make(chan chanFields)
+
+		go func() {
+			for {
+				var initState state.State
+				_, _, err = socketConn.ReadFrom(&initState)
+				if err != nil {
+					g.logger.Errorf("[UDP] Could not get ID from server: %s", err.Error())
+					initStateChan <- chanFields{Error: err}
+					continue
+				}
+
+				initStateChan <- chanFields{State: &initState}
+			}
+		}()
+
+		res := <-initStateChan
+		if err = res.Error; err != nil {
+			g.logger.Errorf("[UDP] Could not get initial state from server: %s", err.Error())
+			return err
+		}
+
 		g.rxUDPSocketConn = socketConn
 		g.udpConn = conn
 		g.udpIsConnected = true
+		g.clientID = res.State.Client.ID
+		g.clientSlot = res.State.Client.Slot
 	}
 
 	receivedState := state.Empty()
 
 	go func() {
 		for {
-			if _, err := g.udpConn.Write(state.WithClientReady()); err != nil {
+			if _, err := g.udpConn.Write(state.WithClientReady(g.clientID.UUID)); err != nil {
 				if strings.Contains(err.Error(), "connection refused") {
 					g.logger.Warnf("Exiting due to unavailable server: %s", err.Error())
 					break
@@ -172,9 +203,8 @@ func (g *Game) init() error {
 				continue
 			}
 
-			g.logger.Infof("[UDP-RX] Received %d bytes from server: %s", size, receivedState)
+			g.logger.Tracef("[UDP-RX] Received %d bytes from server: %s", size, receivedState)
 			g.stateChannel <- receivedState
-			break
 		}
 	}()
 
@@ -246,16 +276,18 @@ func (g *Game) Update() error {
 
 	select {
 	case s := <-g.stateChannel:
+		g.logger.Info("Updated from server")
 		g.state = s
-		g.clientID = s.ClientID
-		position := ctypes.NewPosition(0, 100.0)
-		player, err := ctypes.NewPlayer(ctypes.PlayerColour(s.ClientSlot), &g.spritesheet, &position)
-		if err != nil {
-			return err
-		}
-
-		g.localPlayer = *player
 	default:
+	}
+
+	if g.state.Message == state.Messages.FROM_SERVER {
+		switch g.state.Submessage {
+		case state.Submessages.SERVER_FIRST_CLIENT_CONNECTION_INFORMATION:
+			g.clientID = g.state.Client.ID
+		default:
+			g.logger.Warnf("Unknown or unhandled state submessage: %s", g.state.Submessage.String())
+		}
 	}
 
 	return nil
@@ -285,13 +317,13 @@ func (g *Game) DebugDrawPlayerSprites(image *ebiten.Image) {
 }
 
 func (g *Game) Draw(screen *ebiten.Image) {
+	go g.UpdateServer()
+
 	ebitenutil.DebugPrint(screen, fmt.Sprintf("%.0f FPS", ebiten.ActualFPS()))
-	ebitenutil.DebugPrintAt(screen, g.state.ServerMessage, screen.Bounds().Dx()/2, screen.Bounds().Dy()/2)
+	ebitenutil.DebugPrintAt(screen, g.state.Message.String(), screen.Bounds().Dx()/2, screen.Bounds().Dy()/2)
 	g.DebugDrawPlayerSprites(screen)
 
 	g.localPlayer.Draw(screen)
-
-	go g.UpdateServer()
 }
 
 func (g *Game) Layout(_, _ int) (screenWidth, screenHeight int) {

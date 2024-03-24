@@ -115,7 +115,7 @@ linters:
     # Even with deprecation notice I find it useful.
     # There are situations when instead of io.ReaderCloser
     # I can use io.Reader. A small but good improvement.
-    - interfacer
+    # - interfacer
 
     # Fix all the misspells, amazing thing.
     - misspell
@@ -159,9 +159,6 @@ linters:
 
     # I have found that it's not the same as staticcheck binary :\
     - staticcheck
-
-    # Is a replacement for `golint`, similar to `revive`.
-    - stylecheck
 
     # Check struct tags.
     - tagliatelle
@@ -266,6 +263,9 @@ linters:
 
     # 1st Go linter, deprecated :( use `revive`.
     - golint
+   
+    # Is a replacement for `golint`, similar to `revive`.
+    - stylecheck
 
     # Reports magic consts. Might be noisy but still good.
     - gomnd

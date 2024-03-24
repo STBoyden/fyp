@@ -4,7 +4,9 @@ import (
 	"net"
 	"net/netip"
 	"strings"
+	"sync/atomic"
 
+	"fyp/src/common/ctypes"
 	"fyp/src/common/ctypes/state"
 	"fyp/src/common/utils/logging"
 	"fyp/src/internal/models"
@@ -24,6 +26,7 @@ type GameHandler struct {
 	connInfo        netip.AddrPort
 	closeChannel    <-chan interface{}
 	exitChannel     chan bool
+	updateID        atomic.Uint64
 }
 
 var _ Handler = &GameHandler{}
@@ -41,6 +44,27 @@ func NewGameHandler(logger *logging.Logger, serverState *models.ServerState, soc
 	}
 }
 
+func (gh *GameHandler) handleDisconnection(clientID string) {}
+
+func (gh *GameHandler) handleConnection(clientID string, clientState state.State) {
+	gh.serverState.AddPlayer(clientState.Client.Player.Name, *clientState.Client.Player.Inner)
+
+	for entry := range gh.connectionsMap.Iter() {
+		if clientID == entry.ID {
+			continue
+		}
+
+		otherPlayers := gh.serverState.FilterPlayers(func(key string, _ ctypes.Player) bool {
+			return key != entry.ID // we want only ids that aren't the current entry's ID
+		})
+
+		_, err := entry.Conn.Write(state.WithUpdatedPlayers(&gh.updateID, otherPlayers))
+		if err != nil {
+			gh.logger.Errorf("[UDP: handleConnection] Could not send other player state: %s", err.Error())
+		}
+	}
+}
+
 func (gh *GameHandler) Handle() error {
 	gh.logger.Infof("Started game data socket (UDP) on %d\n", gh.connInfo.Port())
 
@@ -55,7 +79,7 @@ func (gh *GameHandler) Handle() error {
 	clientState := state.Empty()
 	var clientIP string
 	var clientPort string
-	oldIDs := make(map[uuid.UUID]struct{})
+	connectedIDs := make(map[uuid.UUID]int)
 
 outer:
 	for {
@@ -88,72 +112,66 @@ outer:
 			continue
 		}
 
-		if clientState.ClientUDPPort != "" {
-			portColonIndex := strings.LastIndex(addr.String(), ":")
-			clientIP = addr.String()[:portColonIndex]
-			clientPort = clientState.ClientUDPPort
-			continue
-		}
+		if clientState.Message == state.Messages.FROM_CLIENT {
+			clientData := clientState.Client
 
-		var id uuid.UUID
-		var slot int
+			switch clientState.Submessage {
 
-		if _, ok := oldIDs[clientState.ClientID.UUID]; !ok {
-			gh.logger.Debugf("[UDP] Initial connection with client at %s: %s", addr, clientState)
+			case state.Submessages.CLIENT_SENDING_UDP_PORT:
+				portColonIndex := strings.LastIndex(addr.String(), ":")
+				clientIP = addr.String()[:portColonIndex]
+				clientPort = clientData.UDPPort
 
-			id, err = uuid.NewRandom()
-			if err != nil {
-				gh.logger.Errorf("[UDP] Could not pre-generate UUID: %s", err)
+				gh.logger.Debugf("[UDP] Initial connection with client at %s: %s", addr, clientState)
+				id, err := uuid.NewRandom()
+				if err != nil {
+					gh.logger.Errorf("[UDP] Could not pre-generate UUID: %s", err)
+				}
+				connectedIDs[id] = 0
+
+				clientConn, err := typedsockets.DialUDP[state.State](clientIP, clientPort)
+				if err != nil {
+					gh.logger.Errorf("[UDP] Could not connect to client at '%s:%s'", clientIP, clientPort)
+					return err
+				}
+
+				gh.connectionsMap.UpdateConnection(clientData.ID.UUID.String(), clientConn)
+
+				gh.logger.Infof("[UDP] Connected to client's UDP socket at %s:%s", clientIP, clientPort)
+
+				_, err = clientConn.Write(state.WithNewClientConnection(id, connectedIDs[id]))
+				if err != nil {
+					gh.logger.Errorf("[UDP] Couldn't send to client: %s", err.Error())
+					return err
+				}
+				gh.logger.Infof("[UDP] Sent initial data to client at %s:%s", clientIP, clientPort)
+
+				continue
+
+			case state.Submessages.CLIENT_READY:
+				id := clientData.ID.UUID.String()
+
+				if gh.connectionsMap.ContainsConnection(id) {
+					if _, ok := gh.connectionSlots[clientData.ID.UUID]; !ok && gh.connectedAmount <= 4 {
+						gh.connectionSlots[clientData.ID.UUID] = gh.connectedAmount
+						connectedIDs[clientData.ID.UUID] = gh.connectedAmount
+
+						gh.connectedAmount++
+					}
+
+					go gh.handleConnection(id, clientState)
+				} else {
+					gh.logger.Errorf("[UDP] Client with id '%s' not found", clientState.Client.ID.UUID)
+					continue
+				}
+
+			case state.Submessages.CLIENT_DISCONNECTING:
+				gh.connectedAmount--
+				delete(gh.connectionSlots, clientData.ID.UUID)
+				gh.connectionsMap.DeleteConnection(clientData.ID.UUID.String())
+
+				gh.logger.Infof("[UDP] Disconnected from client with id: %s", clientData.ID.UUID.String())
 			}
-			oldIDs[id] = struct{}{}
-		} else {
-			id = clientState.ClientID.UUID
-		}
-
-		if _, ok := gh.connectionSlots[id]; !ok && gh.connectedAmount <= 4 {
-			gh.connectionSlots[id] = gh.connectedAmount
-			slot = gh.connectedAmount
-
-			gh.connectedAmount++
-		}
-
-		// gh.logger.Debugf("[UDP] Received state from client at %s: %s", addr, clientState)
-
-		if gh.connectionsMap.ContainsConnection(id.String()) {
-			// gh.logger.Debugf("[UDP] Got player data from %s (id: %s)", addr.String(), id.String())
-			for name, player := range clientState.Players {
-				gh.serverState.AddPlayer(name, player)
-			}
-		}
-
-		if clientState.ClientReady {
-			clientConn, err := typedsockets.DialUDP[state.State](clientIP, clientPort)
-			if err != nil {
-				gh.logger.Errorf("[UDP] Could not connect to client at '%s:%s'", clientIP, clientPort)
-				return err
-			}
-
-			gh.connectionsMap.UpdateConnection(id.String(), clientConn)
-
-			gh.logger.Infof("[UDP] Connected to client's UDP socket at %s:%s", clientIP, clientPort)
-
-			// TODO Logic with sending the game updates and logic here.
-			gh.logger.Infof("[UDP] Sending 'hello' message and new ID to client at %s:%s", clientIP, clientPort)
-			_, err = clientConn.Write(state.WithNewClientConnection(id, slot))
-			if err != nil {
-				gh.logger.Errorf("[UDP] Couldn't send to client: %s", err.Error())
-				return err
-			}
-
-			// return nil
-		}
-
-		if clientState.ClientDisconnecting {
-			gh.connectedAmount--
-			delete(gh.connectionSlots, id)
-			gh.connectionsMap.DeleteConnection(id.String())
-
-			gh.logger.Infof("[UDP] Disconnected from client with id: %s", id.String())
 		}
 	}
 

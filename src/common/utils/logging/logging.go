@@ -114,7 +114,7 @@ func (l *Logger) Infof(format string, v ...any) {
 	l.log(os.Stdout, INFO, format, v...)
 }
 
-// Info outputs a simple message at the INDOlevel.
+// Info outputs a simple message at the INFO level.
 func (l *Logger) Info(message string) {
 	l.log(os.Stdout, INFO, message)
 }

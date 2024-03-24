@@ -158,9 +158,9 @@ func (direction *playerDirection) UnmarshalJSON(data []byte) error {
 }
 
 type Player struct {
-	Position             Position        `json:"pos"`
-	PlayerSpriteIndex    PlayerColour    `json:"sprite_index"`
-	Facing               playerDirection `json:"facing"`
+	Position             *Position       `json:"pos,omitempty"`
+	PlayerSpriteIndex    PlayerColour    `json:"sprite_index,omitempty"`
+	Facing               playerDirection `json:"facing,omitempty"`
 	lastFrameUpdate      time.Time
 	frames               []*ebiten.Image
 	playerAnimationFrame PlayerFrameState
@@ -196,7 +196,7 @@ func NewPlayer(spriteIndex PlayerColour, spritesheet *Spritesheet, position *Pos
 	matrix.Translate(position.X, position.Y)
 
 	return &Player{
-		Position:          *position,
+		Position:          position,
 		PlayerSpriteIndex: spriteIndex,
 		Facing:            playerDirectionRight,
 		frames:            frames,

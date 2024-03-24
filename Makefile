@@ -8,15 +8,18 @@ BUILD_DIR := $(ROOT)/build
 .PHONY: all
 
 install_formatter:
-	@go install mvdan.cc/gofumpt@latest
+	go install mvdan.cc/gofumpt@latest
 
 install_linter:
-	@curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $$(go env GOPATH)/bin v1.56.2
+	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $$(go env GOPATH)/bin v1.56.2
 
 install_godoc:
-	@go install golang.org/x/tools/cmd/godoc@latest
+	go install golang.org/x/tools/cmd/godoc@latest
 
-install_tools: install_formatter install_linter
+install_goenums:
+	go install github.com/zarldev/goenums@latest
+
+install_tools: install_formatter install_linter install_godoc install_goenums
 
 check: fmt lint
 
@@ -41,6 +44,13 @@ clean:
 
 generate_resources:
 	go generate resources/resources_gen.go
+
+generate_enums:
+	go generate fyp/src/common/ctypes/state
+
+generate: generate_resources generate_enums
+
+gen: generate
 
 prebuild: generate_resources pre
 	mkdir -p $(BUILD_DIR)
