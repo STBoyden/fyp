@@ -29,7 +29,7 @@ doc:
 	@godoc -index -http=:3000
 
 pre:
-	@./scripts/pre
+	@./scripts/pre.sh
 
 fmt:
 	find . -iname *.go -exec gofumpt -w -extra {} \;
