@@ -2,6 +2,7 @@ SHELL := $(shell which bash)
 DATE := $(shell date +"%Y-%m-%d")
 TIME := $(shell date +"%H%M%S")
 ROOT := $(shell pwd)
+LD_FLAGS := $(shell ./scripts/ld-flags.sh)
 LOGS_DIR := $(ROOT)/logs/$(DATE)/$(TIME)
 BUILD_DIR := $(ROOT)/build
 
@@ -61,10 +62,10 @@ prerun: pre
 	go mod tidy
 
 build_game: prebuild
-	go build -race -o $(BUILD_DIR)/game src/cmd/client/main.go
+	go build $(LD_FLAGS) -race -o $(BUILD_DIR)/game src/cmd/client/main.go
 
 build_server: prebuild
-	go build -race -o $(BUILD_DIR)/server src/cmd/server/main.go
+	go build $(LD_FLAGS) -race -o $(BUILD_DIR)/server src/cmd/server/main.go
 
 build: build_game build_server
 
