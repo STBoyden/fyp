@@ -18,11 +18,26 @@ import (
 	"github.com/google/uuid"
 )
 
-const (
-	serverPing = "ping"
-)
-
 var UnknownClientID = uuid.NullUUID{Valid: false}
+
+type playerFields struct {
+	Name  string        `json:"name,omitempty"`
+	Inner ctypes.Player `json:"inner,omitempty"`
+}
+
+type clientFields struct {
+	UDPPort         string              `json:"udp_port,omitempty"`
+	ID              uuid.NullUUID       `json:"id,omitempty"`
+	Slot            int                 `json:"slot,omitempty"`
+	InitialPosition ctypes.Position     `json:"initial_position,omitempty"`
+	Colour          ctypes.PlayerColour `json:"player_colour"`
+	Player          playerFields        `json:"player,omitempty"`
+}
+
+type serverFields struct {
+	Players  map[string]ctypes.Player `json:"players,omitempty"`
+	UpdateID int                      `json:"update_id,omitempty"`
+}
 
 /*
 state.State is a common object that is shared between both the client and the server over
@@ -31,15 +46,21 @@ that the specific (de)serialisation format is changed in the future without chan
 state.State API.
 */
 type State struct {
-	ClientUDPPort       string        `json:"client_udp_port,omitempty"`
-	ClientReady         bool          `json:"client_is_ready,omitempty"`
-	ClientID            uuid.NullUUID `json:"client_id,omitempty"`
-	ClientSlot          int           `json:"client_slot,omitempty"`
-	ClientDisconnecting bool          `json:"client_is_disconnecting,omitempty"`
+	Message    Message      `json:"message"`
+	Submessage Submessage   `json:"sub_message"`
+	Client     clientFields `json:"client,omitempty"`
+	Server     serverFields `json:"server,omitempty"`
+}
 
-	ServerPing    string                   `json:"ping_message,omitempty"`
-	ServerMessage string                   `json:"server_message,omitempty"`
-	Players       map[string]ctypes.Player `json:"players,omitempty"`
+func WithUpdatedPlayers(serverUpdateID int, playersMap map[string]ctypes.Player) State {
+	return State{
+		Message:    Messages.FROM_SERVER,
+		Submessage: Submessages.SERVER_UPDATING_PLAYERS,
+		Server: serverFields{
+			UpdateID: serverUpdateID,
+			Players:  playersMap,
+		},
+	}
 }
 
 /*
@@ -47,34 +68,74 @@ WithUpdatedPlayerState returns a state.State that contains the player data from
 ctypes.Player so that it can be used to update the server's version of this client.
 */
 func WithUpdatedPlayerState(clientID uuid.NullUUID, playerState ctypes.Player) State {
-	players := make(map[string]ctypes.Player)
-	players[playerState.PlayerSpriteIndex.String()] = playerState
+	clientPlayer := playerFields{
+		Name:  playerState.PlayerSpriteIndex.String(),
+		Inner: playerState,
+	}
 
-	return State{ClientID: clientID, Players: players}
-}
-
-func WithClientUDPPort(clientUDPPort string) State {
-	return State{ClientUDPPort: clientUDPPort}
-}
-
-func WithClientDisconnecting(clientID uuid.NullUUID) State {
-	return State{ClientID: clientID, ClientDisconnecting: true}
-}
-
-func WithNewClientConnection(newClientID uuid.UUID, clientSlot int) State {
 	return State{
-		ServerMessage: "Hello, world!",
-		ClientSlot:    clientSlot,
-		ClientID:      uuid.NullUUID{UUID: newClientID, Valid: true},
+		Message:    Messages.FROM_CLIENT,
+		Submessage: Submessages.CLIENT_SENDING_LOCAL_DATA,
+		Client: clientFields{
+			ID:     clientID,
+			Player: clientPlayer,
+		},
 	}
 }
 
-func WithClientReady() State {
-	return State{ClientReady: true}
+func WithClientUDPPort(clientUDPPort string) State {
+	return State{
+		Message:    Messages.FROM_CLIENT,
+		Submessage: Submessages.CLIENT_SENDING_UDP_PORT,
+		Client: clientFields{
+			UDPPort: clientUDPPort,
+		},
+	}
+}
+
+func WithClientDisconnecting(clientID uuid.NullUUID, playerName string) State {
+	return State{
+		Message:    Messages.FROM_CLIENT,
+		Submessage: Submessages.CLIENT_DISCONNECTING,
+		Client: clientFields{
+			ID:     clientID,
+			Player: playerFields{Name: playerName},
+		},
+	}
+}
+
+func WithNewClientConnection(clientID uuid.UUID, slot int) State {
+	return State{
+		Message:    Messages.FROM_SERVER,
+		Submessage: Submessages.SERVER_FIRST_CLIENT_CONNECTION_INFORMATION,
+		Client: clientFields{
+			Slot:            slot,
+			ID:              uuid.NullUUID{UUID: clientID, Valid: true},
+			InitialPosition: ctypes.NewPosition(100, 100),
+			Colour:          ctypes.PlayerColourFromInt(slot),
+		},
+	}
+}
+
+func WithClientReady(clientID uuid.UUID, player ctypes.Player) State {
+	return State{
+		Message:    Messages.FROM_CLIENT,
+		Submessage: Submessages.CLIENT_READY,
+		Client: clientFields{
+			ID: uuid.NullUUID{UUID: clientID, Valid: true},
+			Player: playerFields{
+				Name:  player.PlayerSpriteIndex.String(),
+				Inner: player,
+			},
+		},
+	}
 }
 
 func WithServerPing() State {
-	return State{ServerPing: serverPing}
+	return State{
+		Message:    Messages.FROM_SERVER,
+		Submessage: Submessages.SERVER_PING,
+	}
 }
 
 // Check that `State` corrrectly implements `typedsockets.Convertable` and `fmt.Stringer`.
@@ -96,16 +157,12 @@ type (
 Empty returns an empty State with a non-nil Players field.
 */
 func Empty() State {
-	return State{Players: make(map[string]ctypes.Player)}
+	return State{Server: serverFields{Players: make(map[string]ctypes.Player)}}
 }
 
 func (s *State) IsEmpty() bool {
-	return (s.ClientUDPPort == "" &&
-		!s.ClientReady &&
-		s.ServerPing == "" &&
-		s.ServerMessage == "" &&
-		s.ClientID == UnknownClientID &&
-		s.Players == nil)
+	return (s.Submessage == Submessages.SUBMESSAGE_NONE &&
+		s.Message == Messages.MESSAGE_NONE)
 }
 
 // Marshal is a wrapper over json.Marshal to implement typedsockets.Convertable.

@@ -2,21 +2,26 @@ SHELL := $(shell which bash)
 DATE := $(shell date +"%Y-%m-%d")
 TIME := $(shell date +"%H%M%S")
 ROOT := $(shell pwd)
+LD_FLAGS := $(shell ./scripts/ld-flags.sh)
+GO_FLAGS := -race
 LOGS_DIR := $(ROOT)/logs/$(DATE)/$(TIME)
 BUILD_DIR := $(ROOT)/build
 
 .PHONY: all
 
 install_formatter:
-	@go install mvdan.cc/gofumpt@latest
+	go install mvdan.cc/gofumpt@latest
 
 install_linter:
-	@curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $$(go env GOPATH)/bin v1.56.2
+	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $$(go env GOPATH)/bin v1.56.2
 
 install_godoc:
-	@go install golang.org/x/tools/cmd/godoc@latest
+	go install golang.org/x/tools/cmd/godoc@latest
 
-install_tools: install_formatter install_linter
+install_goenums:
+	go install github.com/zarldev/goenums@latest
+
+install_tools: install_formatter install_linter install_godoc install_goenums
 
 check: fmt lint
 
@@ -26,7 +31,7 @@ doc:
 	@godoc -index -http=:3000
 
 pre:
-	@./scripts/pre
+	@./scripts/pre.sh
 
 fmt:
 	find . -iname *.go -exec gofumpt -w -extra {} \;
@@ -42,6 +47,13 @@ clean:
 generate_resources:
 	go generate resources/resources_gen.go
 
+generate_enums:
+	go generate fyp/src/common/ctypes/state
+
+generate: generate_resources generate_enums
+
+gen: generate
+
 prebuild: generate_resources pre
 	mkdir -p $(BUILD_DIR)
 	go mod tidy
@@ -51,10 +63,10 @@ prerun: pre
 	go mod tidy
 
 build_game: prebuild
-	go build -race -o $(BUILD_DIR)/game src/cmd/client/main.go
+	go build $(LD_FLAGS) $(GO_FLAGS) -o $(BUILD_DIR)/game src/cmd/client/main.go
 
 build_server: prebuild
-	go build -race -o $(BUILD_DIR)/server src/cmd/server/main.go
+	go build $(LD_FLAGS) $(GO_FLAGS) -o $(BUILD_DIR)/server src/cmd/server/main.go
 
 build: build_game build_server
 
@@ -73,7 +85,7 @@ run: build prerun
 	@echo
 
 run_with_logs: build prerun
-	$(BUILD_DIR)/server & disown
-	$(BUILD_DIR)/game
+	($(BUILD_DIR)/server 2>&1 | tee -a $(LOGS_DIR)/server.log) & disown
+	$(BUILD_DIR)/game 2>&1 | tee -a $(LOGS_DIR)/game.log
 	@pkill server
 	@echo
