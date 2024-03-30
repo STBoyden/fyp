@@ -3,6 +3,7 @@ DATE := $(shell date +"%Y-%m-%d")
 TIME := $(shell date +"%H%M%S")
 ROOT := $(shell pwd)
 LD_FLAGS := $(shell ./scripts/ld-flags.sh)
+GO_FLAGS := -race
 LOGS_DIR := $(ROOT)/logs/$(DATE)/$(TIME)
 BUILD_DIR := $(ROOT)/build
 
@@ -62,10 +63,10 @@ prerun: pre
 	go mod tidy
 
 build_game: prebuild
-	go build $(LD_FLAGS) -race -o $(BUILD_DIR)/game src/cmd/client/main.go
+	go build $(LD_FLAGS) $(GO_FLAGS) -o $(BUILD_DIR)/game src/cmd/client/main.go
 
 build_server: prebuild
-	go build $(LD_FLAGS) -race -o $(BUILD_DIR)/server src/cmd/server/main.go
+	go build $(LD_FLAGS) $(GO_FLAGS) -o $(BUILD_DIR)/server src/cmd/server/main.go
 
 build: build_game build_server
 
@@ -84,7 +85,7 @@ run: build prerun
 	@echo
 
 run_with_logs: build prerun
-	$(BUILD_DIR)/server & disown
-	$(BUILD_DIR)/game
+	($(BUILD_DIR)/server 2>&1 | tee -a $(LOGS_DIR)/server.log) & disown
+	$(BUILD_DIR)/game 2>&1 | tee -a $(LOGS_DIR)/game.log
 	@pkill server
 	@echo

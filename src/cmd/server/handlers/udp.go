@@ -44,10 +44,31 @@ func NewGameHandler(logger *logging.Logger, serverState *models.ServerState, soc
 	}
 }
 
-func (gh *GameHandler) handleDisconnection(clientID string) {}
+func (gh *GameHandler) handleDisconnection(id, name string) {
+	if !gh.serverState.ContainsPlayer(name) {
+		return
+	}
+
+	gh.connectionsMap.DeleteConnection(id)
+	gh.serverState.RemovePlayer(name)
+
+	players := gh.serverState.GetPlayers()
+
+	for entry := range gh.connectionsMap.Iter() {
+		_, err := entry.Conn.Write(state.WithUpdatedPlayers(int(gh.updateID.Load()), players))
+		if err != nil {
+			gh.logger.Errorf("[UDP: handleDisconnection] Could not update %s's version of currently connected players: %s", name, err.Error())
+			continue
+		}
+	}
+}
 
 func (gh *GameHandler) handleConnection(clientID string, clientState state.State) {
-	gh.serverState.AddPlayer(clientState.Client.Player.Name, *clientState.Client.Player.Inner)
+	if gh.serverState.ContainsPlayer(clientState.Client.Player.Name) {
+		gh.serverState.UpdatePlayer(clientState.Client.Player.Name, clientState.Client.Player.Inner)
+	} else {
+		gh.serverState.AddPlayer(clientState.Client.Player.Name, clientState.Client.Player.Inner)
+	}
 
 	for entry := range gh.connectionsMap.Iter() {
 		if clientID == entry.ID {
@@ -58,7 +79,7 @@ func (gh *GameHandler) handleConnection(clientID string, clientState state.State
 			return key != entry.ID // we want only ids that aren't the current entry's ID
 		})
 
-		_, err := entry.Conn.Write(state.WithUpdatedPlayers(&gh.updateID, otherPlayers))
+		_, err := entry.Conn.Write(state.WithUpdatedPlayers(int(gh.updateID.Load()), otherPlayers))
 		if err != nil {
 			gh.logger.Errorf("[UDP: handleConnection] Could not send other player state: %s", err.Error())
 		}
@@ -83,6 +104,8 @@ func (gh *GameHandler) Handle() error {
 
 outer:
 	for {
+		gh.updateID.Add(1)
+
 		select {
 		case doClose := <-gh.exitChannel:
 			if doClose {
@@ -116,7 +139,6 @@ outer:
 			clientData := clientState.Client
 
 			switch clientState.Submessage {
-
 			case state.Submessages.CLIENT_SENDING_UDP_PORT:
 				portColonIndex := strings.LastIndex(addr.String(), ":")
 				clientIP = addr.String()[:portColonIndex]
@@ -127,7 +149,7 @@ outer:
 				if err != nil {
 					gh.logger.Errorf("[UDP] Could not pre-generate UUID: %s", err)
 				}
-				connectedIDs[id] = 0
+				connectedIDs[id] = gh.connectedAmount
 
 				clientConn, err := typedsockets.DialUDP[state.State](clientIP, clientPort)
 				if err != nil {
@@ -135,9 +157,8 @@ outer:
 					return err
 				}
 
-				gh.connectionsMap.UpdateConnection(clientData.ID.UUID.String(), clientConn)
-
-				gh.logger.Infof("[UDP] Connected to client's UDP socket at %s:%s", clientIP, clientPort)
+				gh.connectionsMap.UpdateConnection(id.String(), clientConn)
+				gh.logger.Infof("[UDP] Connected to client's UDP socket at %s:%s. Client ID: %s", clientIP, clientPort, id)
 
 				_, err = clientConn.Write(state.WithNewClientConnection(id, connectedIDs[id]))
 				if err != nil {
@@ -159,18 +180,22 @@ outer:
 						gh.connectedAmount++
 					}
 
-					go gh.handleConnection(id, clientState)
+					gh.handleConnection(id, clientState)
 				} else {
 					gh.logger.Errorf("[UDP] Client with id '%s' not found", clientState.Client.ID.UUID)
 					continue
 				}
 
 			case state.Submessages.CLIENT_DISCONNECTING:
+				id := clientData.ID.UUID.String()
+				name := clientData.Player.Name
+
 				gh.connectedAmount--
 				delete(gh.connectionSlots, clientData.ID.UUID)
-				gh.connectionsMap.DeleteConnection(clientData.ID.UUID.String())
 
-				gh.logger.Infof("[UDP] Disconnected from client with id: %s", clientData.ID.UUID.String())
+				gh.handleDisconnection(id, name)
+
+				gh.logger.Infof("[UDP] Disconnected from client with id: %s", id)
 			}
 		}
 	}

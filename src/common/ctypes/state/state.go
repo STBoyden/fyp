@@ -11,7 +11,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"sync/atomic"
 
 	"fyp/src/common/ctypes"
 	typedsockets "fyp/src/common/utils/net/typed-sockets"
@@ -22,20 +21,22 @@ import (
 var UnknownClientID = uuid.NullUUID{Valid: false}
 
 type playerFields struct {
-	Name  string         `json:"name,omitempty"`
-	Inner *ctypes.Player `json:"inner,omitempty"`
+	Name  string        `json:"name,omitempty"`
+	Inner ctypes.Player `json:"inner,omitempty"`
 }
 
 type clientFields struct {
-	UDPPort string        `json:"udp_port,omitempty"`
-	ID      uuid.NullUUID `json:"id,omitempty"`
-	Slot    int           `json:"slot,omitempty"`
-	Player  playerFields  `json:"player,omitempty"`
+	UDPPort         string              `json:"udp_port,omitempty"`
+	ID              uuid.NullUUID       `json:"id,omitempty"`
+	Slot            int                 `json:"slot,omitempty"`
+	InitialPosition ctypes.Position     `json:"initial_position,omitempty"`
+	Colour          ctypes.PlayerColour `json:"player_colour"`
+	Player          playerFields        `json:"player,omitempty"`
 }
 
 type serverFields struct {
 	Players  map[string]ctypes.Player `json:"players,omitempty"`
-	UpdateID *atomic.Uint64           `json:"update_id,omitempty"`
+	UpdateID int                      `json:"update_id,omitempty"`
 }
 
 /*
@@ -51,9 +52,10 @@ type State struct {
 	Server     serverFields `json:"server,omitempty"`
 }
 
-func WithUpdatedPlayers(serverUpdateID *atomic.Uint64, playersMap map[string]ctypes.Player) State {
+func WithUpdatedPlayers(serverUpdateID int, playersMap map[string]ctypes.Player) State {
 	return State{
-		Message: Messages.FROM_SERVER,
+		Message:    Messages.FROM_SERVER,
+		Submessage: Submessages.SERVER_UPDATING_PLAYERS,
 		Server: serverFields{
 			UpdateID: serverUpdateID,
 			Players:  playersMap,
@@ -68,7 +70,7 @@ ctypes.Player so that it can be used to update the server's version of this clie
 func WithUpdatedPlayerState(clientID uuid.NullUUID, playerState ctypes.Player) State {
 	clientPlayer := playerFields{
 		Name:  playerState.PlayerSpriteIndex.String(),
-		Inner: &playerState,
+		Inner: playerState,
 	}
 
 	return State{
@@ -91,33 +93,40 @@ func WithClientUDPPort(clientUDPPort string) State {
 	}
 }
 
-func WithClientDisconnecting(clientID uuid.NullUUID) State {
+func WithClientDisconnecting(clientID uuid.NullUUID, playerName string) State {
 	return State{
 		Message:    Messages.FROM_CLIENT,
 		Submessage: Submessages.CLIENT_DISCONNECTING,
 		Client: clientFields{
-			ID: clientID,
+			ID:     clientID,
+			Player: playerFields{Name: playerName},
 		},
 	}
 }
 
-func WithNewClientConnection(newClientID uuid.UUID, clientSlot int) State {
+func WithNewClientConnection(clientID uuid.UUID, slot int) State {
 	return State{
 		Message:    Messages.FROM_SERVER,
 		Submessage: Submessages.SERVER_FIRST_CLIENT_CONNECTION_INFORMATION,
 		Client: clientFields{
-			Slot: clientSlot,
-			ID:   uuid.NullUUID{UUID: newClientID, Valid: true},
+			Slot:            slot,
+			ID:              uuid.NullUUID{UUID: clientID, Valid: true},
+			InitialPosition: ctypes.NewPosition(100, 100),
+			Colour:          ctypes.PlayerColourFromInt(slot),
 		},
 	}
 }
 
-func WithClientReady(clientID uuid.UUID) State {
+func WithClientReady(clientID uuid.UUID, player ctypes.Player) State {
 	return State{
 		Message:    Messages.FROM_CLIENT,
 		Submessage: Submessages.CLIENT_READY,
 		Client: clientFields{
 			ID: uuid.NullUUID{UUID: clientID, Valid: true},
+			Player: playerFields{
+				Name:  player.PlayerSpriteIndex.String(),
+				Inner: player,
+			},
 		},
 	}
 }

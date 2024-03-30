@@ -86,9 +86,29 @@ const (
 	PlayerGreen
 	PlayerPurple
 	PlayerOrange
+	PlayerUnknown
 	PlayerMinColour = PlayerBlue
 	PlayerMaxColour = PlayerOrange
 )
+
+func PlayerColourFromInt(i int) PlayerColour {
+	var colour PlayerColour
+
+	switch i {
+	case 0:
+		colour = PlayerBlue
+	case 1:
+		colour = PlayerGreen
+	case 2:
+		colour = PlayerPurple
+	case 3:
+		colour = PlayerOrange
+	default:
+		colour = PlayerUnknown
+	}
+
+	return colour
+}
 
 func (colour *PlayerColour) String() string {
 	var str string
@@ -158,13 +178,18 @@ func (direction *playerDirection) UnmarshalJSON(data []byte) error {
 }
 
 type Player struct {
-	Position             *Position       `json:"pos,omitempty"`
+	Position             Position        `json:"pos,omitempty"`
 	PlayerSpriteIndex    PlayerColour    `json:"sprite_index,omitempty"`
 	Facing               playerDirection `json:"facing,omitempty"`
 	lastFrameUpdate      time.Time
 	frames               []*ebiten.Image
 	playerAnimationFrame PlayerFrameState
 	geoMatrix            ebiten.GeoM
+	spritesheet          *Spritesheet
+}
+
+func getFrames(spritesheet *Spritesheet, spriteColour PlayerColour) ([]*ebiten.Image, error) {
+	return spritesheet.GetPlayer(spriteColour)
 }
 
 /*
@@ -174,20 +199,14 @@ spritesheet is a non-optional parameter, and a nil value being passed in will re
 an error.
 
 spriteIndex refers to the amount player sprite types available in the tilemap at
-resources/images/tilemap_transparent_packed.png. `position` is an "optional" parameter in
-the sense that in the case of a `nil` value being passed in, a default position will be
-used.
+resources/images/tilemap_transparent_packed.png.
 */
-func NewPlayer(spriteIndex PlayerColour, spritesheet *Spritesheet, position *Position) (*Player, error) {
-	if position == nil {
-		position = &Position{}
-	}
-
+func NewPlayer(spriteColour PlayerColour, spritesheet *Spritesheet, position Position) (*Player, error) {
 	if spritesheet == nil {
 		return nil, errors.New("spritesheet must not be nil")
 	}
 
-	frames, err := spritesheet.GetPlayer(spriteIndex)
+	frames, err := getFrames(spritesheet, spriteColour)
 	if err != nil {
 		return nil, err
 	}
@@ -197,10 +216,11 @@ func NewPlayer(spriteIndex PlayerColour, spritesheet *Spritesheet, position *Pos
 
 	return &Player{
 		Position:          position,
-		PlayerSpriteIndex: spriteIndex,
+		PlayerSpriteIndex: spriteColour,
 		Facing:            playerDirectionRight,
 		frames:            frames,
 		geoMatrix:         matrix,
+		spritesheet:       spritesheet,
 	}, nil
 }
 
@@ -251,9 +271,28 @@ func (p *Player) Update() {
 	}
 
 	if didMove {
-		// p.geoMatrix.Scale(, 2)
 		p.geoMatrix.Translate(p.Position.X, p.Position.Y)
 	}
+}
+
+func (p *Player) InitFrames(spritesheet *Spritesheet) {
+	if p.frames == nil {
+		frames, err := getFrames(spritesheet, p.PlayerSpriteIndex)
+		if err != nil {
+			return
+		}
+
+		p.frames = frames
+		p.spritesheet = spritesheet
+	}
+}
+
+func (p *Player) RemoteUpdatePosition() {
+	p.geoMatrix.Reset()
+
+	p.geoMatrix.Scale(-1, 1)
+	p.geoMatrix.Translate(SpriteSize, 0)
+	p.geoMatrix.Translate(p.Position.X, p.Position.Y)
 }
 
 func (p *Player) Draw(screen *ebiten.Image) {

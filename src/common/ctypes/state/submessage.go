@@ -13,4 +13,5 @@ const (
 
 	server_ping
 	server_first_client_connection_information
+	server_updating_players
 )

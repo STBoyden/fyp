@@ -24,10 +24,11 @@ import (
 )
 
 type Game struct {
-	ui          *ebitenui.UI
-	font        font.Face
-	spritesheet ctypes.Spritesheet
-	localPlayer ctypes.Player
+	ui                  *ebitenui.UI
+	font                font.Face
+	spritesheet         ctypes.Spritesheet
+	localPlayer         ctypes.Player
+	playerUpdateChannel chan ctypes.Player
 
 	audioCtx         *audio.Context
 	audioPlayer      *audio.Player
@@ -49,9 +50,10 @@ type Game struct {
 	rxUDPSocketConn     *state.UDPConnection
 
 	stateChannel chan state.State
-	state        state.State
+	serverState  state.State
 	clientID     uuid.NullUUID
 	clientSlot   int
+	players      map[string]ctypes.Player
 }
 
 func New(
@@ -75,6 +77,27 @@ func New(
 
 func (g *Game) init() error {
 	defer func() { g.initialised = true }()
+
+	if err := g.initUI(); err != nil {
+		return err
+	}
+
+	if err := g.spritesheet.Load(); err != nil {
+		return err
+	}
+
+	stream, err := resources.GetMusicBgm()
+	if err != nil {
+		return err
+	}
+
+	loop := audio.NewInfiniteLoop(stream, stream.Length())
+	player, err := g.audioCtx.NewPlayer(loop)
+	if err != nil {
+		return err
+	}
+	g.audioPlayer = player
+	g.audioPlayer.SetVolume(g.audioMusicVolume)
 
 	if !g.tcpIsConnected {
 		address := g.serverAddress + ":" + g.tcpPort
@@ -157,12 +180,17 @@ func (g *Game) init() error {
 				var initState state.State
 				_, _, err = socketConn.ReadFrom(&initState)
 				if err != nil {
-					g.logger.Errorf("[UDP] Could not get ID from server: %s", err.Error())
+					if strings.Contains(err.Error(), "use of closed network connection") {
+						continue
+					}
+
+					g.logger.Errorf("[UDP] Could not get initial state from server: %s", err.Error())
 					initStateChan <- chanFields{Error: err}
 					continue
 				}
 
 				initStateChan <- chanFields{State: &initState}
+				break
 			}
 		}()
 
@@ -177,19 +205,32 @@ func (g *Game) init() error {
 		g.udpIsConnected = true
 		g.clientID = res.State.Client.ID
 		g.clientSlot = res.State.Client.Slot
+
+		player, err := ctypes.NewPlayer(res.State.Client.Colour, &g.spritesheet, res.State.Client.InitialPosition)
+		if err != nil {
+			g.logger.Errorf("[UDP] Could not create player from initial state from server: %s\n\nState received from server: %s", err.Error(), res.State)
+			return err
+		}
+
+		g.localPlayer = *player
+		g.playerUpdateChannel = make(chan ctypes.Player)
 	}
 
 	receivedState := state.Empty()
 
-	go func() {
+	go func(c <-chan ctypes.Player) {
 		for {
-			if _, err := g.udpConn.Write(state.WithClientReady(g.clientID.UUID)); err != nil {
-				if strings.Contains(err.Error(), "connection refused") {
-					g.logger.Warnf("Exiting due to unavailable server: %s", err.Error())
-					break
-				}
+			if player, ok := <-c; ok {
+				if _, err := g.udpConn.Write(state.WithClientReady(g.clientID.UUID, player)); err != nil {
+					if strings.Contains(err.Error(), "connection refused") {
+						g.logger.Warnf("Exiting due to unavailable server: %s", err.Error())
+						break
+					}
 
-				g.logger.Warnf("Couldn't send ready message to server: %s", err.Error())
+					g.logger.Warnf("Couldn't send ready message to server: %s", err.Error())
+					continue
+				}
+			} else {
 				continue
 			}
 
@@ -206,28 +247,19 @@ func (g *Game) init() error {
 			g.logger.Tracef("[UDP-RX] Received %d bytes from server: %s", size, receivedState)
 			g.stateChannel <- receivedState
 		}
+	}(g.playerUpdateChannel)
+
+	go func() {
+		<-g.udpCloseLoopChannel
+		g.logger.Infof("[UDP-RX] Stopping...")
+
+		defer g.udpConn.Close()
+		defer g.rxUDPSocketConn.Close()
+
+		if _, err := g.udpConn.Write(state.WithClientDisconnecting(g.clientID, g.localPlayer.PlayerSpriteIndex.String())); err != nil {
+			g.logger.Warnf("[UDP-TX] Could not warn server of disconnection: %s", err)
+		}
 	}()
-
-	if err := g.initUI(); err != nil {
-		return err
-	}
-
-	if err := g.spritesheet.Load(); err != nil {
-		return err
-	}
-
-	stream, err := resources.GetMusicBgm()
-	if err != nil {
-		return err
-	}
-
-	loop := audio.NewInfiniteLoop(stream, stream.Length())
-	player, err := g.audioCtx.NewPlayer(loop)
-	if err != nil {
-		return err
-	}
-	g.audioPlayer = player
-	g.audioPlayer.SetVolume(g.audioMusicVolume)
 
 	return nil
 }
@@ -262,38 +294,43 @@ func (g *Game) Update() error {
 	g.ui.Update()
 	g.localPlayer.Update()
 
-	go func() {
-		<-g.udpCloseLoopChannel
-		g.logger.Infof("[UDP-RX] Stopping...")
-
-		defer g.udpConn.Close()
-		defer g.rxUDPSocketConn.Close()
-
-		if _, err := g.udpConn.Write(state.WithClientDisconnecting(g.clientID)); err != nil {
-			g.logger.Warnf("[UDP-TX] Could not warn server of disconnection: %s", err)
-		}
-	}()
+	select {
+	case g.playerUpdateChannel <- g.localPlayer:
+	default:
+	}
 
 	select {
 	case s := <-g.stateChannel:
 		g.logger.Info("Updated from server")
-		g.state = s
+		g.serverState = s
 	default:
 	}
 
-	if g.state.Message == state.Messages.FROM_SERVER {
-		switch g.state.Submessage {
+	if g.serverState.Message == state.Messages.FROM_SERVER {
+		switch g.serverState.Submessage {
 		case state.Submessages.SERVER_FIRST_CLIENT_CONNECTION_INFORMATION:
-			g.clientID = g.state.Client.ID
+			g.clientID = g.serverState.Client.ID
+		case state.Submessages.SERVER_UPDATING_PLAYERS:
+			g.players = make(map[string]ctypes.Player)
+
+			for name, player := range g.serverState.Server.Players {
+				if name == g.localPlayer.PlayerSpriteIndex.String() {
+					continue
+				}
+
+				g.players[name] = player
+			}
+		case state.Submessages.SUBMESSAGE_NONE:
+			// do nothing
 		default:
-			g.logger.Warnf("Unknown or unhandled state submessage: %s", g.state.Submessage.String())
+			g.logger.Warnf("Unknown or unhandled state submessage: %s", g.serverState.Submessage.String())
 		}
 	}
 
 	return nil
 }
 
-func (g Game) UpdateServer() {
+func (g *Game) UpdateServer() {
 	_, err := g.udpConn.Write(state.WithUpdatedPlayerState(g.clientID, g.localPlayer))
 	if err != nil {
 		g.logger.Errorf("error updating server's version of this player via UDP: %s", err.Error())
@@ -317,13 +354,26 @@ func (g *Game) DebugDrawPlayerSprites(image *ebiten.Image) {
 }
 
 func (g *Game) Draw(screen *ebiten.Image) {
-	go g.UpdateServer()
+	g.UpdateServer()
 
-	ebitenutil.DebugPrint(screen, fmt.Sprintf("%.0f FPS", ebiten.ActualFPS()))
-	ebitenutil.DebugPrintAt(screen, g.state.Message.String(), screen.Bounds().Dx()/2, screen.Bounds().Dy()/2)
-	g.DebugDrawPlayerSprites(screen)
+	ebitenutil.DebugPrint(
+		screen,
+		fmt.Sprintf(
+			"%.0f FPS\nCharacter: %s\n\nNetworking\nMessage: %s\nSubmessage: %s",
+			ebiten.ActualFPS(),
+			g.localPlayer.PlayerSpriteIndex.String(),
+			g.serverState.Message,
+			g.serverState.Submessage,
+		),
+	)
 
 	g.localPlayer.Draw(screen)
+
+	for _, player := range g.players {
+		player.InitFrames(&g.spritesheet)
+		player.RemoteUpdatePosition()
+		player.Draw(screen)
+	}
 }
 
 func (g *Game) Layout(_, _ int) (screenWidth, screenHeight int) {

@@ -24,6 +24,7 @@ type submessageContainer struct {
 	CLIENT_DISCONNECTING                       Submessage
 	SERVER_PING                                Submessage
 	SERVER_FIRST_CLIENT_CONNECTION_INFORMATION Submessage
+	SERVER_UPDATING_PLAYERS                    Submessage
 }
 
 var Submessages = submessageContainer{
@@ -48,6 +49,9 @@ var Submessages = submessageContainer{
 	SERVER_FIRST_CLIENT_CONNECTION_INFORMATION: Submessage{
 		submessage: server_first_client_connection_information,
 	},
+	SERVER_UPDATING_PLAYERS: Submessage{
+		submessage: server_updating_players,
+	},
 }
 
 func (c submessageContainer) All() []Submessage {
@@ -59,6 +63,7 @@ func (c submessageContainer) All() []Submessage {
 		c.CLIENT_DISCONNECTING,
 		c.SERVER_PING,
 		c.SERVER_FIRST_CLIENT_CONNECTION_INFORMATION,
+		c.SERVER_UPDATING_PLAYERS,
 	}
 }
 
@@ -99,6 +104,8 @@ func stringToSubmessage(s string) Submessage {
 		return Submessages.SERVER_PING
 	case "server_first_client_connection_information":
 		return Submessages.SERVER_FIRST_CLIENT_CONNECTION_INFORMATION
+	case "server_updating_players":
+		return Submessages.SERVER_UPDATING_PLAYERS
 	}
 	return invalidSubmessage
 }
@@ -124,6 +131,7 @@ var validSubmessages = map[Submessage]bool{
 	Submessages.CLIENT_DISCONNECTING:                       true,
 	Submessages.SERVER_PING:                                true,
 	Submessages.SERVER_FIRST_CLIENT_CONNECTION_INFORMATION: true,
+	Submessages.SERVER_UPDATING_PLAYERS:                    true,
 }
 
 func (p Submessage) IsValid() bool {
@@ -152,11 +160,12 @@ func _() {
 	_ = x[client_disconnecting-4]
 	_ = x[server_ping-5]
 	_ = x[server_first_client_connection_information-6]
+	_ = x[server_updating_players-7]
 }
 
-const _submessage_name = "submessage_noneclient_sending_udp_portclient_readyclient_sending_local_dataclient_disconnectingserver_pingserver_first_client_connection_information"
+const _submessage_name = "submessage_noneclient_sending_udp_portclient_readyclient_sending_local_dataclient_disconnectingserver_pingserver_first_client_connection_informationserver_updating_players"
 
-var _submessage_index = [...]uint16{0, 15, 38, 50, 75, 95, 106, 148}
+var _submessage_index = [...]uint16{0, 15, 38, 50, 75, 95, 106, 148, 171}
 
 func (i submessage) String() string {
 	if i < 0 || i >= submessage(len(_submessage_index)-1) {
