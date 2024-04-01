@@ -8,3 +8,4 @@ go.work.sum
 .DS_STORE
 .env
 /**/go.sum
+.vscode/settings.json

@@ -7,7 +7,7 @@ import (
 	"fyp/src/common/utils/env"
 	"fyp/src/common/utils/logging"
 
-	ebiten "github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2"
 )
 
 var log = logging.NewClient()

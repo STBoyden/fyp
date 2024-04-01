@@ -4,4 +4,4 @@ importing items from resources, make sure that the generation a) ran, b) succeed
 */
 package resources
 
-//go:generate go run ../src/internal/cmd/generate-resources/main.go
+//go:generate go run ../src/internal/gen/generate-resources/main.go

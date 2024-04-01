@@ -1,3 +1,5 @@
+//go:generate go run ./gen/spritesheet_gen.go -f ./gen/spritesheet_data.yml
+
 package ctypes
 
 import (
@@ -32,6 +34,14 @@ func (sheet *Spritesheet) Load() error {
 	return nil
 }
 
+func (sheet *Spritesheet) Sheet() (*ebiten.Image, error) {
+	if !sheet.isLoaded {
+		return nil, errors.New("spritesheet isn't loaded")
+	}
+
+	return sheet.image, nil
+}
+
 // gets player sprites from a given index 0-3.
 func (sheet *Spritesheet) GetPlayer(index PlayerColour) ([]*ebiten.Image, error) {
 	if !sheet.isLoaded {
@@ -45,8 +55,8 @@ func (sheet *Spritesheet) GetPlayer(index PlayerColour) ([]*ebiten.Image, error)
 	}
 
 	startY := 192 // the starting y position of the first character sprite
-	offsetY := (SpriteSize + 1) * int(index)
-	endX := 111 // the ending x position of all the character sprites
+	offsetY := int(index) * SpriteSize
+	endX := 112 // the ending x position of all the character sprites
 
 	images := []*ebiten.Image{}
 

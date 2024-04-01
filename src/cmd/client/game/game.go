@@ -1,24 +1,23 @@
 package game
 
 import (
-	"fmt"
 	"net"
 	"strings"
 
 	"fyp/resources"
 	"fyp/src/common/ctypes"
 	"fyp/src/common/ctypes/state"
+	"fyp/src/common/ctypes/tiles"
 	"fyp/src/common/utils/logging"
 
 	typedsockets "fyp/src/common/utils/net/typed-sockets"
 
-	ebitenui "github.com/ebitenui/ebitenui"
+	"github.com/ebitenui/ebitenui"
 	"github.com/ebitenui/ebitenui/widget"
 	"github.com/golang/freetype/truetype"
 	"github.com/google/uuid"
-	ebiten "github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/audio"
-	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 	"golang.org/x/image/font"
 	"golang.org/x/image/font/gofont/goregular"
 )
@@ -27,6 +26,8 @@ type Game struct {
 	ui                  *ebitenui.UI
 	font                font.Face
 	spritesheet         ctypes.Spritesheet
+	tiles               tiles.Tiles
+	currentMap          Map
 	localPlayer         ctypes.Player
 	playerUpdateChannel chan ctypes.Player
 
@@ -85,6 +86,13 @@ func (g *Game) init() error {
 	if err := g.spritesheet.Load(); err != nil {
 		return err
 	}
+
+	g.tiles = tiles.Initialise(&g.spritesheet)
+	currentMap, err := LoadMapFromFile("resources/maps/01_start.map")
+	if err != nil {
+		return err
+	}
+	g.currentMap = *currentMap
 
 	stream, err := resources.GetMusicBgm()
 	if err != nil {
@@ -188,6 +196,10 @@ func (g *Game) init() error {
 					initStateChan <- chanFields{Error: err}
 					continue
 				}
+
+				x, y := currentMap.GetSpawnPoint()
+				initState.Client.InitialPosition.X = x
+				initState.Client.InitialPosition.Y = y
 
 				initStateChan <- chanFields{State: &initState}
 				break
@@ -337,36 +349,38 @@ func (g *Game) UpdateServer() {
 	}
 }
 
-func (g *Game) DebugDrawPlayerSprites(image *ebiten.Image) {
-	for playerIndex := ctypes.PlayerMinColour; playerIndex <= ctypes.PlayerMaxColour; playerIndex++ {
-		playerSprites, err := g.spritesheet.GetPlayer(playerIndex)
-		if err != nil {
-			g.logger.Error(err.Error())
-		}
+// func (g *Game) debugDrawPlayerSprites(image *ebiten.Image) {
+// 	for playerIndex := ctypes.PlayerMinColour; playerIndex <= ctypes.PlayerMaxColour; playerIndex++ {
+// 		playerSprites, err := g.spritesheet.GetPlayer(playerIndex)
+// 		if err != nil {
+// 			g.logger.Error(err.Error())
+// 		}
 
-		for index, sprite := range playerSprites {
-			op := &ebiten.DrawImageOptions{}
-			op.GeoM.Translate(float64(index)*ctypes.SpriteSizeF, 100+((ctypes.SpriteSizeF+1.0)*float64(playerIndex)))
-			op.GeoM.Scale(2, 2)
-			image.DrawImage(sprite, op)
-		}
-	}
-}
+// 		for index, sprite := range playerSprites {
+// 			op := &ebiten.DrawImageOptions{}
+// 			op.GeoM.Translate(float64(index)*ctypes.SpriteSizeF, 100+((ctypes.SpriteSizeF+1.0)*float64(playerIndex)))
+// 			op.GeoM.Scale(2, 2)
+// 			image.DrawImage(sprite, op)
+// 		}
+// 	}
+// }
 
 func (g *Game) Draw(screen *ebiten.Image) {
 	g.UpdateServer()
 
-	ebitenutil.DebugPrint(
-		screen,
-		fmt.Sprintf(
-			"%.0f FPS\nCharacter: %s\n\nNetworking\nMessage: %s\nSubmessage: %s",
-			ebiten.ActualFPS(),
-			g.localPlayer.PlayerSpriteIndex.String(),
-			g.serverState.Message,
-			g.serverState.Submessage,
-		),
-	)
+	// ebitenutil.DebugPrint(
+	// 	screen,
+	// 	fmt.Sprintf(
+	// 		"%.0f FPS\nCharacter: %s\n\nNetworking\nMessage: %s\nSubmessage: %s",
+	// 		ebiten.ActualFPS(),
+	// 		g.localPlayer.PlayerSpriteIndex.String(),
+	// 		g.serverState.Message,
+	// 		g.serverState.Submessage,
+	// 	),
+	// )
+	// g.DebugDrawPlayerSprites(screen)
 
+	g.currentMap.Draw(screen, &g.tiles)
 	g.localPlayer.Draw(screen)
 
 	for _, player := range g.players {

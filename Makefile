@@ -50,11 +50,15 @@ generate_resources:
 generate_enums:
 	go generate fyp/src/common/ctypes/state
 
-generate: generate_resources generate_enums
+generate_tiles:
+	@go mod tidy
+	go generate fyp/src/common/ctypes
+
+generate: generate_resources generate_enums generate_tiles
 
 gen: generate
 
-prebuild: generate_resources pre
+prebuild: generate pre
 	mkdir -p $(BUILD_DIR)
 	go mod tidy
 
