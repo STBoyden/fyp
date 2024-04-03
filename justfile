@@ -1,13 +1,16 @@
-SHELL := $(shell which bash)
-DATE := $(shell date +"%Y-%m-%d")
-TIME := $(shell date +"%H%M%S")
-ROOT := $(shell pwd)
-LD_FLAGS := $(shell ./scripts/ld-flags.sh)
-GO_FLAGS := -race
-LOGS_DIR := $(ROOT)/logs/$(DATE)/$(TIME)
-BUILD_DIR := $(ROOT)/build
+set windows-shell := ["powershell.exe", "-NoLogo", "-Command"]
 
-.PHONY: all
+DATE := if os_family() == "unix" { `date +"%Y-%m-%d"` } else { `get-date -format "yyyy-MM-dd"` }
+TIME := if os_family() == "unix" { `date +"%H%M%S"` } else { `get-date -format "HH:mm:ss"` }
+ROOT := absolute_path(".")
+LD_FLAGS := if os_family() == "unix" { `./scripts/ld-flags.sh` } else { "" }
+GO_FLAGS := "-race"
+LOGS_DIR := ROOT / "logs" / DATE / TIME
+BUILD_DIR := ROOT / "build"
+
+pre_script := if os_family() == "unix" { "./scripts/pre.sh" } else { "" }
+
+all: pre clean build
 
 install_formatter:
 	go install mvdan.cc/gofumpt@latest
@@ -31,7 +34,7 @@ doc:
 	@godoc -index -http=:3000
 
 pre:
-	@./scripts/pre.sh
+  @{{pre_script}}
 
 fmt:
 	find . -iname *.go -exec gofumpt -w -extra {} \;
@@ -39,10 +42,8 @@ fmt:
 lint:
 	golangci-lint run
 
-all: pre clean build
-
 clean:
-	rm -rf $(BUILD_DIR)
+	rm -rf "{{BUILD_DIR}}"
 
 generate_resources:
 	go generate resources/resources_gen.go
@@ -60,37 +61,39 @@ generate: generate_resources generate_enums generate_tiles
 gen: generate
 
 prebuild: generate pre
-	mkdir -p $(BUILD_DIR)
+	mkdir -p "{{BUILD_DIR}}"
 	go mod tidy
 
 prerun: pre
-	mkdir -p $(LOGS_DIR)
+	mkdir -p {{LOGS_DIR}}
 	go mod tidy
 
 build_game: prebuild
-	go build $(LD_FLAGS) $(GO_FLAGS) -o $(BUILD_DIR)/game src/cmd/client/main.go
+	go build {{GO_FLAGS}} -o {{BUILD_DIR}}/game src/cmd/client/main.go
 
 build_server: prebuild
-	go build $(LD_FLAGS) $(GO_FLAGS) -o $(BUILD_DIR)/server src/cmd/server/main.go
+	go build {{GO_FLAGS}} -o {{BUILD_DIR}}/server src/cmd/server/main.go
 
 build: build_game build_server
 
 run_game: build_game prerun
-	$(BUILD_DIR)/game 2>&1 | tee -a $(LOGS_DIR)/game.log
+	{{BUILD_DIR}}/game 2>&1 | tee -a {{LOGS_DIR}}/game.log
 	@echo
 
 run_server: build_server prerun
-	$(BUILD_DIR)/server 2>&1 | tee -a $(LOGS_DIR)/server.log
+	{{BUILD_DIR}}/server 2>&1 | tee -a {{LOGS_DIR}}/server.log
 	@echo
 
+[unix]
 run: build prerun
-	($(BUILD_DIR)/server 2>&1 | tee -a $(LOGS_DIR)/server.log) > /dev/null & disown
-	($(BUILD_DIR)/game 2>&1 | tee -a $(LOGS_DIR)/game.log) > /dev/null
+	({{BUILD_DIR}}/server 2>&1 | tee -a {{LOGS_DIR}}/server.log) & disown
+	({{BUILD_DIR}}/game 2>&1 | tee -a {{LOGS_DIR}}/game.log)
 	@pkill server
 	@echo
 
-run_with_logs: build prerun
-	($(BUILD_DIR)/server 2>&1 | tee -a $(LOGS_DIR)/server.log) & disown
-	$(BUILD_DIR)/game 2>&1 | tee -a $(LOGS_DIR)/game.log
+[windows]
+run: build prerun
+	({{BUILD_DIR}}/server 2>&1 | tee -a {{LOGS_DIR}}/server.log) & disown
+	({{BUILD_DIR}}/game 2>&1 | tee -a {{LOGS_DIR}}/game.log)
 	@pkill server
 	@echo
