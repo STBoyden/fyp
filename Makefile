@@ -53,6 +53,7 @@ generate_enums:
 generate_tiles:
 	@go mod tidy
 	go generate fyp/src/common/ctypes
+	go generate fyp/src/common/ctypes/tiles
 
 generate: generate_resources generate_enums generate_tiles
 
