@@ -10,8 +10,10 @@ const (
 	client_ready
 	client_sending_local_data
 	client_disconnecting
+	client_has_finished_level
 
 	server_ping
 	server_first_client_connection_information
 	server_updating_players
+	server_players_have_finished
 )
