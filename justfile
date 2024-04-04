@@ -135,7 +135,7 @@ package: prepackage
     copy-item -path "resources" -recurse -exclude "*.go",".gitignore" -destination "dist" 
     copy-item -path ".env.example" -destination "dist/.env"
     rename-item -path "dist" -newname "final_year_project"
-    compress-archive "final_year_project" -compressionlevel optimal "fyp-{{ platform_string }}.zip"
+    compress-archive "final_year_project" -compressionlevel optimal "fyp-{{ platform_string }}.zip" -force
     remove-item -path "final_year_project" -recurse -force
 
 alias pkg := package
