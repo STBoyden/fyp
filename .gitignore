@@ -2,7 +2,7 @@
 /logs
 /dist
 
-fyp-build-*.zip
+fyp-*.zip
 
 go.work.sum
 .DS_STORE

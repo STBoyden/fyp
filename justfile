@@ -5,10 +5,13 @@ TIME := trim(if os_family() == "unix" { `date +"%H%M%S"` } else { `get-date -for
 ROOT := absolute_path(".")
 LD_FLAGS := if os_family() == "unix" { `./scripts/ld-flags.sh` } else { "" }
 GO_FLAGS := if os_family() == "unix" { "-race" } else { "" }
+RELEASE_LD_FLAGS := "-ldflags '-s -w'"
 LOGS_DIR := ROOT / "logs" / DATE / TIME
 BUILD_DIR := ROOT / "build"
+DIST_DIR := ROOT / "dist"
 EXT := if os_family() == "windows" { ".exe" } else { "" }
 pre_script := if os_family() == "unix" { "./scripts/pre.sh" } else { "" }
+platform_string := if os_family() == "unix" { lowercase(`uname`) } else { "windows" }
 
 all: pre clean build
 
@@ -38,6 +41,7 @@ doc:
     @echo
     @godoc -index -http=:3000
 
+[private]
 pre:
     @{{ pre_script }}
 
@@ -55,10 +59,12 @@ lint:
 [unix]
 clean:
     rm -rf "{{ BUILD_DIR }}"
+    rm -rf "{{ DIST_DIR }}"
 
 [windows]
 clean:
     if (test-path "{{ BUILD_DIR }}") { remove-item -recurse -force "{{ BUILD_DIR }}" }
+    if (test-path "{{ DIST_DIR }}") { remote-item -recurse -force "{{ DIST_DIR }}"}
 
 generate:
     @go mod tidy
@@ -67,12 +73,14 @@ generate:
     go generate fyp/src/common/ctypes/state
     go generate fyp/src/common/ctypes/tiles
 
-gen: generate
+alias gen := generate
 
+[private]
 prebuild: generate pre
     mkdir -p "{{ BUILD_DIR }}"
     go mod tidy
 
+[private]
 prerun: pre
     mkdir -p "{{ LOGS_DIR }}"
     go mod tidy
@@ -106,3 +114,26 @@ run: clean build prerun
     start-process -Wait "{{ BUILD_DIR }}/game.exe" -RedirectStandardOutput "{{ LOGS_DIR }}/game.out.log" -RedirectStandardError "{{ LOGS_DIR }}/game.err.log"
     kill $(get-process server | select -expand id)
     @echo ""
+
+[private]
+prepackage: clean prebuild
+    go build {{ RELEASE_LD_FLAGS }} -o {{ DIST_DIR }}/game{{ EXT }} src/cmd/client/main.go
+    go build {{ RELEASE_LD_FLAGS }} -o {{ DIST_DIR }}/server{{ EXT }} src/cmd/server/main.go
+
+[unix]
+package: prepackage
+    cp -r resources dist/
+    cp .env.example dist/.env
+    find dist/resources/ -iname *.go -exec rm {} \;
+    rm dist/resources/.gitignore
+    mv dist/ final_year_project
+    zip -9 -r "fyp-{{ platform_string }}.zip" final_year_project
+    rm -rf final_year_project/
+
+[windows]
+package: prepackage
+    copy-item -path "resources" -recurse -exclude "*.go",".gitignore" -destination "dist" 
+    copy-item -path ".env.example" -destination "dist/.env"
+    rename-item -path "dist" -newname "final_year_project"
+    compress-arvhive "final_year_project" -compressionlevel optimal "fyp-{{ platform_string }}.zip"
+    remove-item -path "final_year_project" -recurse -force
