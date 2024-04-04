@@ -305,6 +305,7 @@ func (g *Game) Update() error {
 
 	g.ui.Update()
 	g.localPlayer.Update()
+	g.tiles.StepAnimateTiles()
 
 	colliding, tile := g.currentMap.IsColliding(int(g.localPlayer.Position.X), int(g.localPlayer.Position.Y))
 	if colliding {
@@ -367,22 +368,6 @@ func (g *Game) UpdateServer() {
 		g.logger.Errorf("error updating server's version of this player via UDP: %s", err.Error())
 	}
 }
-
-// func (g *Game) debugDrawPlayerSprites(image *ebiten.Image) {
-// 	for playerIndex := ctypes.PlayerMinColour; playerIndex <= ctypes.PlayerMaxColour; playerIndex++ {
-// 		playerSprites, err := g.spritesheet.GetPlayer(playerIndex)
-// 		if err != nil {
-// 			g.logger.Error(err.Error())
-// 		}
-
-// 		for index, sprite := range playerSprites {
-// 			op := &ebiten.DrawImageOptions{}
-// 			op.GeoM.Translate(float64(index)*ctypes.SpriteSizeF, 100+((ctypes.SpriteSizeF+1.0)*float64(playerIndex)))
-// 			op.GeoM.Scale(2, 2)
-// 			image.DrawImage(sprite, op)
-// 		}
-// 	}
-// }
 
 func (g *Game) Draw(screen *ebiten.Image) {
 	g.UpdateServer()

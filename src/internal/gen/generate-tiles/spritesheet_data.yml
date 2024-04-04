@@ -108,6 +108,23 @@ tiles:
   - name: Diamond
     collidable: false
     touchable: true
+    symbol: "?"
+    frames:
+      - x0: 32
+        y0: 48
+        x1: 48
+        y1: 64
+      - x0: 32
+        y0: 64
+        x1: 48
+        y1: 80
+      - x0: 32
+        y0: 80
+        x1: 48
+        y1: 96
+  - name: Emerald
+    collidable: false
+    touchable: true
     symbol: "$"
     frames:
       - x0: 0

@@ -77,7 +77,7 @@ clean:
 
 generate:
     @go mod tidy
-    go generate resources/resources_gen.go
+    go generate fyp/resources/
     go generate fyp/src/common/ctypes
     go generate fyp/src/common/ctypes/state
     go generate fyp/src/common/ctypes/tiles
