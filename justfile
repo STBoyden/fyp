@@ -11,7 +11,7 @@ build_dir := root / "build"
 dist_dir := root / "dist"
 pre_script := if os_family() == "unix" { "./scripts/pre.sh" } else { "" }
 platform := if os_family() == "unix" { lowercase(`uname`) } else { "windows" }
-arch := if arch() == "arm" { "arm64" } else { if arch() == "x86_64" { "amd64" } else { arch() } }
+arch := if arch() == "arm" { "arm64" } else { if arch() == "aarch64" { "arm64" } else { if arch() == "x86_64" { "amd64" } else { arch() } } }
 ext := if platform == "windows" { ".exe" } else { "" }
 
 alias pkg := package
@@ -85,6 +85,7 @@ generate:
 [private]
 prebuild: generate pre
     mkdir -p "{{ build_dir }}"
+    @echo "Building for {{ platform }} {{ arch }}..."
     go mod tidy
 
 [private]
