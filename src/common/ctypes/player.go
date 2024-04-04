@@ -275,6 +275,14 @@ func (p *Player) Update() {
 	}
 }
 
+func (p *Player) TickPhysics() {
+	p.Position.AffectY(-4)
+	p.geoMatrix.Reset()
+
+	p.playerAnimationFrame.Jumping()
+	p.geoMatrix.Translate(p.Position.X, p.Position.Y)
+}
+
 func (p *Player) InitFrames(spritesheet *Spritesheet) {
 	if p.frames == nil {
 		frames, err := getFrames(spritesheet, p.PlayerSpriteIndex)

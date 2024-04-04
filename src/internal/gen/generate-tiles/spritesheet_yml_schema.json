@@ -1,0 +1,93 @@
+{
+  "$schema": "http://json-schema.org/draft-06/schema#",
+  "$ref": "#/definitions/tilemap_data",
+  "definitions": {
+    "tilemap_data": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "sheet": {
+          "type": "string"
+        },
+        "tiles": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Tile"
+          }
+        }
+      },
+      "required": ["sheet", "tiles"],
+      "title": "tilemap_data"
+    },
+    "Tile": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "symbol": {
+          "type": "string"
+        },
+        "bounds": {
+          "$ref": "#/definitions/Bounds"
+        },
+        "touchable": { "type": "boolean" },
+        "collidable": { "type": "boolean" },
+        "variants": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Variant"
+          }
+        },
+        "frames": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Bounds"
+          }
+        }
+      },
+      "required": ["name"],
+      "title": "Tile"
+    },
+    "Bounds": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "x0": {
+          "type": "integer"
+        },
+        "y0": {
+          "type": "integer"
+        },
+        "x1": {
+          "type": "integer"
+        },
+        "y1": {
+          "type": "integer"
+        }
+      },
+      "required": ["x0", "x1", "y0", "y1"],
+      "title": "Bounds"
+    },
+    "Variant": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "suffix": {
+          "type": "string"
+        },
+        "symbol": {
+          "type": "string"
+        },
+        "touchable": { "type": "boolean" },
+        "collidable": { "type": "boolean" },
+        "bounds": {
+          "$ref": "#/definitions/Bounds"
+        }
+      },
+      "required": ["bounds", "suffix", "symbol", "touchable", "collidable"],
+      "title": "Variant"
+    }
+  }
+}

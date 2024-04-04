@@ -306,6 +306,25 @@ func (g *Game) Update() error {
 	g.ui.Update()
 	g.localPlayer.Update()
 
+	colliding, tile := g.currentMap.IsColliding(int(g.localPlayer.Position.X), int(g.localPlayer.Position.Y))
+	if colliding {
+		tile := *tile
+
+		switch tile {
+		case tiles.Typeses.GROUND_UL_TILE:
+		case tiles.Typeses.GROUND_UM_TILE:
+		case tiles.Typeses.GROUND_UR_TILE:
+		case tiles.Typeses.GROUND_ML_TILE:
+		case tiles.Typeses.GROUND_MM_TILE:
+		case tiles.Typeses.GROUND_MR_TILE:
+			break
+		default:
+			g.localPlayer.TickPhysics()
+		}
+	} else {
+		g.localPlayer.TickPhysics()
+	}
+
 	select {
 	case g.playerUpdateChannel <- g.localPlayer:
 	default:
@@ -367,18 +386,6 @@ func (g *Game) UpdateServer() {
 
 func (g *Game) Draw(screen *ebiten.Image) {
 	g.UpdateServer()
-
-	// ebitenutil.DebugPrint(
-	// 	screen,
-	// 	fmt.Sprintf(
-	// 		"%.0f FPS\nCharacter: %s\n\nNetworking\nMessage: %s\nSubmessage: %s",
-	// 		ebiten.ActualFPS(),
-	// 		g.localPlayer.PlayerSpriteIndex.String(),
-	// 		g.serverState.Message,
-	// 		g.serverState.Submessage,
-	// 	),
-	// )
-	// g.DebugDrawPlayerSprites(screen)
 
 	g.currentMap.Draw(screen, &g.tiles)
 	g.localPlayer.Draw(screen)

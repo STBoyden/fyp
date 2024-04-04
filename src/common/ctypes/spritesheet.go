@@ -1,4 +1,4 @@
-//go:generate go run ./gen/spritesheet_gen.go -f ./gen/spritesheet_data.yml
+//go:generate go run ../../internal/gen/generate-tiles/main.go -f ../../internal/gen/generate-tiles/spritesheet_data.yml
 
 package ctypes
 

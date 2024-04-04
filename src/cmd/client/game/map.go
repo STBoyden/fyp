@@ -2,6 +2,7 @@ package game
 
 import (
 	"fmt"
+	"image"
 	"io"
 	"os"
 	"strings"
@@ -18,7 +19,7 @@ const (
 )
 
 type Map struct {
-	content string
+	positions map[tiles.Types][]ctypes.Position
 }
 
 func LoadMapFromFile(path string) (*Map, error) {
@@ -41,30 +42,20 @@ func LoadMapFromFile(path string) (*Map, error) {
 	if err != nil {
 		return nil, fmt.Errorf("could not load map from file \"%s\": %w", path, err)
 	}
-	m.content = string(content)
+
+	m.positions = make(map[tiles.Types][]ctypes.Position)
+	m.fillPositions(string(content))
 
 	return &m, nil
 }
 
-func (m *Map) GetSpawnPoint() (x, y float64) {
-	for y, tileString := range strings.Split(m.content, "\n") {
-		for x, c := range tileString {
-			if c == 'S' {
-				return float64(x) * ctypes.SpriteSizeF, float64(y) * ctypes.SpriteSizeF
-			}
+func (m *Map) fillPositions(content string) {
+	for line, tileString := range strings.Split(content, "\n") {
+		if line == maxMapHeight {
+			break
 		}
-	}
 
-	return 0, 0
-}
-
-func (m *Map) Draw(screen *ebiten.Image, tileset *tiles.Tiles) {
-	for line, tileString := range strings.Split(m.content, "\n") {
 		for i, tileRune := range tileString {
-			if line == maxMapHeight {
-				break
-			}
-
 			if i != 0 && i%maxMapWidth == 0 {
 				line++
 				i = 0
@@ -72,38 +63,116 @@ func (m *Map) Draw(screen *ebiten.Image, tileset *tiles.Tiles) {
 
 			x := float64(i) * ctypes.SpriteSizeF
 			y := float64(line) * ctypes.SpriteSizeF
+			position := ctypes.NewPosition(x, y)
 
-			switch tileRune {
-			case '-':
-				tileset.Ground.DrawUM(screen, x, y)
-			case ']':
-				tileset.Ground.DrawUR(screen, x, y)
-			case '[':
-				tileset.Ground.DrawUL(screen, x, y)
+			for _, t := range tiles.Typeses.All() {
+				if t.Symbol != string(tileRune) {
+					continue
+				}
 
-			case 'L':
-				tileset.Ground.DrawML(screen, x, y)
-			case 'M':
-				tileset.Ground.DrawMM(screen, x, y)
-			case 'R':
-				tileset.Ground.DrawMR(screen, x, y)
+				if positions, ok := m.positions[t]; ok {
+					m.positions[t] = append(positions, position)
+				} else {
+					m.positions[t] = []ctypes.Position{position}
+				}
 
-			case '\\':
-				tileset.Ground.DrawBL(screen, x, y)
-			case '/':
-				tileset.Ground.DrawBR(screen, x, y)
-			case '_':
-				tileset.Ground.DrawBM(screen, x, y)
+				break
+			}
+		}
+	}
+}
 
-			case 's':
-				tileset.Spike.Draw(screen, x, y)
-			case 'D':
-				tileset.Door.DrawClosed(screen, x, y)
-			case 'd':
-				tileset.Door.DrawOpened(screen, x, y)
+func (m *Map) GetSpawnPoint() (x, y float64) {
+	if positions, ok := m.positions[tiles.Typeses.SPAWNPOINT_TILE]; ok {
+		pos := positions[0]
+
+		return pos.X, pos.Y
+	}
+
+	return 0, 0
+}
+
+func (m *Map) checkPlayerRectAgainstTiles(playerRect image.Rectangle, check func(playerRect, tileRect image.Rectangle, isCollidable, isTouchable bool) bool) (bool, *tiles.Types) {
+	for tile, positions := range m.positions {
+		if !tile.Collidable && !tile.Touchable {
+			continue
+		}
+
+		for _, position := range positions {
+			x := int(position.X)
+			y := int(position.Y)
+
+			tileRect := image.Rect(x, y, x+ctypes.SpriteSize, y+ctypes.SpriteSize)
+
+			ret := check(playerRect, tileRect, tile.Collidable, tile.Touchable)
+
+			if ret {
+				return ret, &tile
+			}
+		}
+	}
+
+	return false, nil
+}
+
+func (m *Map) IsColliding(x, y int) (bool, *tiles.Types) {
+	playerRect := image.Rect(x, y, x+ctypes.SpriteSize, y+ctypes.SpriteSize)
+
+	return m.checkPlayerRectAgainstTiles(playerRect, func(playerRect, tileRect image.Rectangle, isCollidable, _ bool) bool {
+		if !isCollidable {
+			return false
+		}
+
+		return playerRect.Overlaps(tileRect)
+	})
+}
+
+func (m *Map) IsTouching(x, y int) (bool, *tiles.Types) {
+	playerRect := image.Rect(x, y, x+ctypes.SpriteSize, y+ctypes.SpriteSize)
+
+	return m.checkPlayerRectAgainstTiles(playerRect, func(playerRect, tileRect image.Rectangle, _, isTouchable bool) bool {
+		if !isTouchable {
+			return false
+		}
+
+		return playerRect.Overlaps(tileRect)
+	})
+}
+
+func (m *Map) Draw(screen *ebiten.Image, tileset *tiles.Tiles) {
+	for tileType, positions := range m.positions {
+		for _, pos := range positions {
+			switch tileType {
+			case tiles.Typeses.GROUND_UL_TILE:
+				tileset.Ground.DrawUL(screen, pos.X, pos.Y)
+			case tiles.Typeses.GROUND_UM_TILE:
+				tileset.Ground.DrawUM(screen, pos.X, pos.Y)
+			case tiles.Typeses.GROUND_UR_TILE:
+				tileset.Ground.DrawUR(screen, pos.X, pos.Y)
+
+			case tiles.Typeses.GROUND_ML_TILE:
+				tileset.Ground.DrawML(screen, pos.X, pos.Y)
+			case tiles.Typeses.GROUND_MM_TILE:
+				tileset.Ground.DrawMM(screen, pos.X, pos.Y)
+			case tiles.Typeses.GROUND_MR_TILE:
+				tileset.Ground.DrawMR(screen, pos.X, pos.Y)
+
+			case tiles.Typeses.GROUND_BL_TILE:
+				tileset.Ground.DrawBL(screen, pos.X, pos.Y)
+			case tiles.Typeses.GROUND_BM_TILE:
+				tileset.Ground.DrawBM(screen, pos.X, pos.Y)
+			case tiles.Typeses.GROUND_BR_TILE:
+				tileset.Ground.DrawBR(screen, pos.X, pos.Y)
+
+			case tiles.Typeses.SPIKE_TILE:
+				tileset.Spike.Draw(screen, pos.X, pos.Y)
+
+			case tiles.Typeses.DOOR_OPENED_TILE:
+				tileset.Door.DrawOpened(screen, pos.X, pos.Y)
+			case tiles.Typeses.DOOR_CLOSED_TILE:
+				tileset.Door.DrawClosed(screen, pos.X, pos.Y)
 
 			default:
-				tileset.Space.Draw(screen, x, y)
 			}
 		}
 	}
