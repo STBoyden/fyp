@@ -1,22 +1,26 @@
 set windows-shell := ["powershell.exe", "-NoLogo", "-Command"]
 
-DATE := trim(if os_family() == "unix" { `date +"%Y-%m-%d"` } else { `get-date -format "yyyy-MM-dd"` })
-TIME := trim(if os_family() == "unix" { `date +"%H%M%S"` } else { `get-date -format "HHmmss"` })
-ROOT := absolute_path(".")
-LD_FLAGS := if os_family() == "unix" { `./scripts/ld-flags.sh` } else { "" }
-GO_FLAGS := if os_family() == "unix" { "-race" } else { "" }
-RELEASE_LD_FLAGS := "-ldflags '-s -w'"
-LOGS_DIR := ROOT / "logs" / DATE / TIME
-BUILD_DIR := ROOT / "build"
-DIST_DIR := ROOT / "dist"
-EXT := if os_family() == "windows" { ".exe" } else { "" }
+date := trim(if os_family() == "unix" { `date +"%Y-%m-%d"` } else { `get-date -format "yyyy-MM-dd"` })
+time := trim(if os_family() == "unix" { `date +"%H%M%S"` } else { `get-date -format "HHmmss"` })
+root := absolute_path(".")
+ld_flags := if os_family() == "unix" { `./scripts/ld-flags.sh` } else { "" }
+go_flags := if os_family() == "unix" { "-race" } else { "" }
+release_ld_flags := "-ldflags '-s -w'"
+logs_dir := root / "logs" / date / time
+build_dir := root / "build"
+dist_dir := root / "dist"
 pre_script := if os_family() == "unix" { "./scripts/pre.sh" } else { "" }
-platform_string := if os_family() == "unix" { lowercase(`uname`) } else { "windows" }
+platform := if os_family() == "unix" { lowercase(`uname`) } else { "windows" }
+arch := if arch() == "arm" { "arm64" } else { if arch() == "x86_64" { "amd64" } else { arch() } }
+ext := if platform == "windows" { ".exe" } else { "" }
 
 alias pkg := package
 alias gen := generate
 alias b := build
 alias r := run
+
+export GOOS := platform
+export GOARCH := arch
 
 all: install_tools generate build
 
@@ -63,13 +67,13 @@ lint:
 
 [unix]
 clean:
-    rm -rf "{{ BUILD_DIR }}"
-    rm -rf "{{ DIST_DIR }}"
+    rm -rf "{{ build_dir }}"
+    rm -rf "{{ dist_dir }}"
 
 [windows]
 clean:
-    if (test-path "{{ BUILD_DIR }}") { remove-item -recurse -force "{{ BUILD_DIR }}" }
-    if (test-path "{{ DIST_DIR }}") { remote-item -recurse -force "{{ DIST_DIR }}"}
+    if (test-path "{{ build_dir }}") { remove-item -recurse -force "{{ build_dir }}" }
+    if (test-path "{{ dist_dir }}") { remove-item -recurse -force "{{ dist_dir }}"}
 
 generate:
     @go mod tidy
@@ -80,48 +84,48 @@ generate:
 
 [private]
 prebuild: generate pre
-    mkdir -p "{{ BUILD_DIR }}"
+    mkdir -p "{{ build_dir }}"
     go mod tidy
 
 [private]
 prerun: pre
-    mkdir -p "{{ LOGS_DIR }}"
+    mkdir -p "{{ logs_dir }}"
     go mod tidy
 
 build_game: clean prebuild
-    go build {{ LD_FLAGS }} {{ GO_FLAGS }} -o {{ BUILD_DIR }}/game{{ EXT }} src/cmd/client/main.go
+    go build {{ ld_flags }} {{ go_flags }} -o {{ build_dir }}/game{{ ext }} src/cmd/client/main.go
 
 build_server: clean prebuild
-    go build {{ LD_FLAGS }} {{ GO_FLAGS }} -o {{ BUILD_DIR }}/server{{ EXT }} src/cmd/server/main.go
+    go build {{ ld_flags }} {{ go_flags }} -o {{ build_dir }}/server{{ ext }} src/cmd/server/main.go
 
 build: build_game build_server
 
 run_game: build_game prerun
-    {{ BUILD_DIR }}/game{{ EXT }} 2>&1 | tee -a {{ LOGS_DIR }}/game.log
+    {{ build_dir }}/game{{ ext }} 2>&1 | tee -a {{ logs_dir }}/game.log
     @echo
 
 run_server: build_server prerun
-    {{ BUILD_DIR }}/server{{ EXT }} 2>&1 | tee -a {{ LOGS_DIR }}/server.log
+    {{ build_dir }}/server{{ ext }} 2>&1 | tee -a {{ logs_dir }}/server.log
     @echo
 
 [unix]
 run: build prerun
-    ({{ BUILD_DIR }}/server 2>&1 | tee -a {{ LOGS_DIR }}/server.log) & disown
-    ({{ BUILD_DIR }}/game 2>&1 | tee -a {{ LOGS_DIR }}/game.log)
+    ({{ build_dir }}/server 2>&1 | tee -a {{ logs_dir }}/server.log) & disown
+    ({{ build_dir }}/game 2>&1 | tee -a {{ logs_dir }}/game.log)
     @pkill server
     @echo
 
 [windows]
 run: clean build prerun
-    start-process "{{ BUILD_DIR }}/server.exe" -RedirectStandardOutput "{{ LOGS_DIR }}/server.out.log" -RedirectStandardError "{{ LOGS_DIR }}/server.err.log"
-    start-process -Wait "{{ BUILD_DIR }}/game.exe" -RedirectStandardOutput "{{ LOGS_DIR }}/game.out.log" -RedirectStandardError "{{ LOGS_DIR }}/game.err.log"
+    start-process "{{ build_dir }}/server.exe" -RedirectStandardOutput "{{ logs_dir }}/server.out.log" -RedirectStandardError "{{ logs_dir }}/server.err.log"
+    start-process -Wait "{{ build_dir }}/game.exe" -RedirectStandardOutput "{{ logs_dir }}/game.out.log" -RedirectStandardError "{{ logs_dir }}/game.err.log"
     kill $(get-process server | select -expand id)
     @echo ""
 
 [private]
 prepackage: clean prebuild
-    go build {{ RELEASE_LD_FLAGS }} -o {{ DIST_DIR }}/game{{ EXT }} src/cmd/client/main.go
-    go build {{ RELEASE_LD_FLAGS }} -o {{ DIST_DIR }}/server{{ EXT }} src/cmd/server/main.go
+    go build {{ release_ld_flags }} -o {{ dist_dir }}/game{{ ext }} src/cmd/client/main.go
+    go build {{ release_ld_flags }} -o {{ dist_dir }}/server{{ ext }} src/cmd/server/main.go
 
 [unix]
 package: prepackage
@@ -130,7 +134,7 @@ package: prepackage
     find dist/resources/ -iname *.go -exec rm {} \;
     rm dist/resources/.gitignore
     mv dist/ final_year_project
-    zip -9 -r "fyp-{{ platform_string }}.zip" final_year_project
+    zip -9 -r "fyp-{{ platform }}-{{ arch }}.zip" final_year_project
     rm -rf final_year_project/
 
 [windows]
@@ -138,5 +142,5 @@ package: prepackage
     copy-item -path "resources" -recurse -exclude "*.go",".gitignore" -destination "dist" 
     copy-item -path ".env.example" -destination "dist/.env"
     rename-item -path "dist" -newname "final_year_project"
-    compress-archive "final_year_project" -compressionlevel optimal "fyp-{{ platform_string }}.zip" -force
+    compress-archive "final_year_project" -compressionlevel optimal "fyp-{{ platform }}-{{ arch }}.zip" -force
     remove-item -path "final_year_project" -recurse -force
