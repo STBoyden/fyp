@@ -18,6 +18,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/audio"
+	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 	"golang.org/x/image/font"
 	"golang.org/x/image/font/gofont/goregular"
 )
@@ -29,7 +30,11 @@ type Game struct {
 	tiles               tiles.Tiles
 	currentMap          Map
 	localPlayer         ctypes.Player
+	localPlayerCanMove  bool
 	playerUpdateChannel chan ctypes.Player
+
+	screenWidth  int
+	screenHeight int
 
 	audioCtx         *audio.Context
 	audioPlayer      *audio.Player
@@ -303,8 +308,12 @@ func (g *Game) Update() error {
 		g.audioPlayer.Play()
 	}
 
+	g.ui.Container.RemoveChildren()
+
 	g.ui.Update()
-	g.localPlayer.Update()
+	if g.localPlayerCanMove {
+		g.localPlayer.Update()
+	}
 	g.tiles.StepAnimateTiles()
 
 	colliding, tile := g.currentMap.IsColliding(int(g.localPlayer.Position.X), int(g.localPlayer.Position.Y))
@@ -352,6 +361,13 @@ func (g *Game) Update() error {
 
 				g.players[name] = player
 			}
+		case state.Submessages.SERVER_THIS_CLIENT_CAN_MOVE:
+			g.localPlayerCanMove = true
+		case state.Submessages.SERVER_THIS_CLIENT_CANNOT_MOVE:
+			g.localPlayerCanMove = false
+
+			x, y := g.currentMap.GetSpawnPoint()
+			g.localPlayer.Position = ctypes.NewPosition(x, y)
 		case state.Submessages.SUBMESSAGE_NONE:
 			// do nothing
 		default:
@@ -375,6 +391,10 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	g.currentMap.Draw(screen, &g.tiles)
 	g.localPlayer.Draw(screen)
 
+	if !g.localPlayerCanMove {
+		ebitenutil.DebugPrintAt(screen, "Waiting for players...", g.screenWidth/2, g.screenHeight/2)
+	}
+
 	for _, player := range g.players {
 		player.InitFrames(&g.spritesheet)
 		player.RemoteUpdatePosition()
@@ -383,7 +403,10 @@ func (g *Game) Draw(screen *ebiten.Image) {
 }
 
 func (g *Game) Layout(_, _ int) (screenWidth, screenHeight int) {
-	return 640, 480
+	g.screenWidth = 640
+	g.screenHeight = 480
+
+	return g.screenWidth, g.screenHeight
 }
 
 func (g *Game) Delete() error {

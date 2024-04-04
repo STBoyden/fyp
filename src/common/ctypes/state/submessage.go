@@ -15,5 +15,7 @@ const (
 	server_ping
 	server_first_client_connection_information
 	server_updating_players
+	server_this_client_can_move
+	server_this_client_cannot_move
 	server_players_have_finished
 )

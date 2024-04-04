@@ -60,6 +60,13 @@ func (gh *GameHandler) handleDisconnection(id, name string) {
 			gh.logger.Errorf("[UDP: handleDisconnection] Could not update %s's version of currently connected players: %s", name, err.Error())
 			continue
 		}
+
+		if len(gh.serverState.GetPlayers()) < 2 {
+			_, err := entry.Conn.Write(state.WithServerMakingPlayerUnableToMove())
+			if err != nil {
+				gh.logger.Errorf("[UDP: handleConnection] Could not make player movable: %s", err.Error())
+			}
+		}
 	}
 }
 
@@ -82,6 +89,13 @@ func (gh *GameHandler) handleConnection(clientID string, clientState state.State
 		_, err := entry.Conn.Write(state.WithUpdatedPlayers(int(gh.updateID.Load()), otherPlayers))
 		if err != nil {
 			gh.logger.Errorf("[UDP: handleConnection] Could not send other player state: %s", err.Error())
+		}
+
+		if len(gh.serverState.GetPlayers()) >= 2 {
+			_, err := entry.Conn.Write(state.WithServerMakingPlayerAbleToMove())
+			if err != nil {
+				gh.logger.Errorf("[UDP: handleConnection] Could not make player movable: %s", err.Error())
+			}
 		}
 	}
 }
