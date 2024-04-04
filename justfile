@@ -137,3 +137,5 @@ package: prepackage
     rename-item -path "dist" -newname "final_year_project"
     compress-archive "final_year_project" -compressionlevel optimal "fyp-{{ platform_string }}.zip"
     remove-item -path "final_year_project" -recurse -force
+
+alias pkg := package
