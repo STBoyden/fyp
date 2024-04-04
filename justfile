@@ -18,7 +18,7 @@ alias gen := generate
 alias b := build
 alias r := run
 
-all: pre clean build
+all: install_tools generate build
 
 install_formatter:
     go install mvdan.cc/gofumpt@latest
