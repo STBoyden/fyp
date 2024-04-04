@@ -13,6 +13,11 @@ EXT := if os_family() == "windows" { ".exe" } else { "" }
 pre_script := if os_family() == "unix" { "./scripts/pre.sh" } else { "" }
 platform_string := if os_family() == "unix" { lowercase(`uname`) } else { "windows" }
 
+alias pkg := package
+alias gen := generate
+alias b := build
+alias r := run
+
 all: pre clean build
 
 install_formatter:
@@ -72,8 +77,6 @@ generate:
     go generate fyp/src/common/ctypes
     go generate fyp/src/common/ctypes/state
     go generate fyp/src/common/ctypes/tiles
-
-alias gen := generate
 
 [private]
 prebuild: generate pre
@@ -137,5 +140,3 @@ package: prepackage
     rename-item -path "dist" -newname "final_year_project"
     compress-archive "final_year_project" -compressionlevel optimal "fyp-{{ platform_string }}.zip" -force
     remove-item -path "final_year_project" -recurse -force
-
-alias pkg := package
