@@ -93,6 +93,20 @@ func WithClientUDPPort(clientUDPPort string) State {
 	}
 }
 
+func WithServerMakingPlayerAbleToMove() State {
+	return State{
+		Message:    Messages.FROM_SERVER,
+		Submessage: Submessages.SERVER_THIS_CLIENT_CAN_MOVE,
+	}
+}
+
+func WithServerMakingPlayerUnableToMove() State {
+	return State{
+		Message:    Messages.FROM_SERVER,
+		Submessage: Submessages.SERVER_THIS_CLIENT_CANNOT_MOVE,
+	}
+}
+
 func WithClientDisconnecting(clientID uuid.NullUUID, playerName string) State {
 	return State{
 		Message:    Messages.FROM_CLIENT,

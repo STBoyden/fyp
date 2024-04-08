@@ -167,6 +167,15 @@ func (m *Map) Draw(screen *ebiten.Image, tileset *tiles.Tiles) {
 			case tiles.Typeses.SPIKE_TILE:
 				tileset.Spike.Draw(screen, pos.X, pos.Y)
 
+			case tiles.Typeses.COIN_TILE:
+				tileset.Coin.Draw(screen, pos.X, pos.Y)
+			case tiles.Typeses.DIAMOND_TILE:
+				tileset.Diamond.Draw(screen, pos.X, pos.Y)
+			case tiles.Typeses.HEART_TILE:
+				tileset.Heart.Draw(screen, pos.X, pos.Y)
+			case tiles.Typeses.EMERALD_TILE:
+				tileset.Emerald.Draw(screen, pos.X, pos.Y)
+
 			case tiles.Typeses.DOOR_OPENED_TILE:
 				tileset.Door.DrawOpened(screen, pos.X, pos.Y)
 			case tiles.Typeses.DOOR_CLOSED_TILE:

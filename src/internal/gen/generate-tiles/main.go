@@ -70,6 +70,7 @@ package tiles
 
 import (
 	"image"
+	"time"
 
 	"fyp/src/common/ctypes"
 
@@ -82,6 +83,8 @@ type Tiles struct{
 	{{range $tile := .Tiles}}
 	{{$tile.Name}} {{$tile.GetName}}
 	{{end}}
+
+	lastAnimated time.Time
 }
 
 func Initialise(sheet *ctypes.Spritesheet) Tiles {
@@ -98,11 +101,16 @@ func Initialise(sheet *ctypes.Spritesheet) Tiles {
 }
 
 func (tiles *Tiles) StepAnimateTiles() {
+	if time.Since(tiles.lastAnimated).Milliseconds() < 250 {
+		return
+	}
 {{range $tile := .Tiles}}
 {{if $tile.Frames}}
 	tiles.{{$tile.Name}}.StepAnimation()
 {{end}}
 {{end}}
+
+	tiles.lastAnimated = time.Now()
 }
 
 {{range $tile := .Tiles}}
@@ -165,7 +173,7 @@ func (t *{{$tile.GetName}}) Draw(screen *ebiten.Image, x, y float64) {
 }
 
 func (t *{{$tile.GetName}}) StepAnimation() {
-	if t.currentFrame < t.totalFrames {
+	if t.currentFrame < t.totalFrames-1 {
 		t.currentFrame++
 	} else {
 		t.currentFrame = 0
