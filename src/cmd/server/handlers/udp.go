@@ -27,6 +27,7 @@ type GameHandler struct {
 	closeChannel    <-chan interface{}
 	exitChannel     chan bool
 	updateID        atomic.Uint64
+	updates         map[uint64]state.State
 }
 
 var _ Handler = &GameHandler{}
@@ -118,7 +119,6 @@ func (gh *GameHandler) Handle() error {
 
 outer:
 	for {
-		gh.updateID.Add(1)
 
 		select {
 		case doClose := <-gh.exitChannel:
@@ -148,6 +148,8 @@ outer:
 		if size == 0 {
 			continue
 		}
+
+		gh.updateID.Add(1)
 
 		if clientState.Message == state.Messages.FROM_CLIENT {
 			clientData := clientState.Client
@@ -200,6 +202,27 @@ outer:
 					continue
 				}
 
+			case state.Submessages.CLIENT_REQUESTING_UPDATE_ID:
+				id := clientData.ID.UUID.String()
+				requestedUpdateID := clientData.UpdateID
+
+				if !gh.connectionsMap.ContainsConnection(id) {
+					gh.logger.Errorf("[UDP] Client with id '%s' not found", id)
+				}
+
+				prevState, ok := gh.updates[requestedUpdateID]
+
+				if !ok {
+					gh.logger.Errorf("[UDP] Requested update with id '%d' not found", requestedUpdateID)
+				}
+
+				prevState.SetAsResending()
+
+				conn := gh.connectionsMap.GetConnection(id)
+				_, err := conn.Write(prevState)
+				if err != nil {
+					gh.logger.Errorf("[UDP] Could not resend update with id '%d': %s", requestedUpdateID, err)
+				}
 			case state.Submessages.CLIENT_DISCONNECTING:
 				id := clientData.ID.UUID.String()
 				name := clientData.Player.Name
@@ -212,6 +235,8 @@ outer:
 				gh.logger.Infof("[UDP] Disconnected from client with id: %s", id)
 			}
 		}
+
+		gh.updates[gh.updateID.Load()] = gh.serverState.Copy()
 	}
 
 	gh.logger.Warn("[UDP] Closed")

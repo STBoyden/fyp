@@ -8,9 +8,10 @@ TODO: Finish documentation.
 */
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
+
+	"github.com/goccy/go-json"
 
 	"fyp/src/common/ctypes"
 	typedsockets "fyp/src/common/utils/net/typed-sockets"
@@ -32,6 +33,7 @@ type clientFields struct {
 	InitialPosition ctypes.Position     `json:"initial_position,omitempty"`
 	Colour          ctypes.PlayerColour `json:"player_colour"`
 	Player          playerFields        `json:"player,omitempty"`
+	UpdateID        uint64              `json:"update_id,omitempty"`
 }
 
 type serverFields struct {
@@ -150,6 +152,11 @@ func WithServerPing() State {
 		Message:    Messages.FROM_SERVER,
 		Submessage: Submessages.SERVER_PING,
 	}
+}
+
+func (state *State) SetAsResending() {
+	state.Message = Messages.FROM_SERVER
+	state.Submessage = Submessages.SERVER_RESENDING_UPDATE_ID
 }
 
 // Check that `State` corrrectly implements `typedsockets.Convertable` and `fmt.Stringer`.

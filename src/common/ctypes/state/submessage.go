@@ -10,11 +10,13 @@ const (
 	client_ready
 	client_sending_local_data
 	client_disconnecting
+	client_requesting_update_id
 	client_has_finished_level
 
 	server_ping
 	server_first_client_connection_information
 	server_updating_players
+	server_resending_update_id
 	server_this_client_can_move
 	server_this_client_cannot_move
 	server_players_have_finished

@@ -5,6 +5,7 @@ go 1.22.0
 require (
 	github.com/TwiN/go-color v1.4.1
 	github.com/ebitenui/ebitenui v0.5.5
+	github.com/goccy/go-json v0.10.2
 	github.com/golang/freetype v0.0.0-20170609003504-e2365dfdc4a0
 	github.com/hajimehoshi/ebiten/v2 v2.6.5
 	golang.org/x/image v0.12.0

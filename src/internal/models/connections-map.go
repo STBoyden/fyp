@@ -49,6 +49,13 @@ func (cm *ConnectionsMap[T]) ContainsConnection(source string) bool {
 	return cm.connections[source] != nil
 }
 
+func (cm *ConnectionsMap[T]) GetConnection(source string) *T {
+	cm.mutex.Lock()
+	defer cm.mutex.Unlock()
+
+	return cm.connections[source]
+}
+
 type ConnectionsMapIterType[T typedConnections] struct {
 	ID   string
 	Conn T

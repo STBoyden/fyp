@@ -86,3 +86,10 @@ func (s *ServerState) String() string {
 
 	return s.state.String()
 }
+
+func (s *ServerState) Copy() state.State {
+	s.mutex.RLock()
+	defer s.mutex.RUnlock()
+
+	return s.state
+}
