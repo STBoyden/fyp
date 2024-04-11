@@ -66,7 +66,7 @@ func (gh *GameHandler) handleDisconnection(id, name string) {
 		if len(gh.serverState.GetPlayers()) < 2 {
 			_, err := entry.Conn.Write(state.WithServerMakingPlayerUnableToMove())
 			if err != nil {
-				gh.logger.Errorf("[UDP: handleConnection] Could not make player movable: %s", err.Error())
+				gh.logger.Errorf("[UDP: handleDisconnection] Could not make player unmovable: %s", err.Error())
 			}
 		}
 	}
