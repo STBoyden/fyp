@@ -42,6 +42,7 @@ func NewGameHandler(logger *logging.Logger, serverState *models.ServerState, soc
 		closeChannel:    gracefulCloseChannel,
 		exitChannel:     make(chan bool),
 		connectionSlots: make(map[uuid.UUID]int),
+		updates:         make(map[uint64]state.State),
 	}
 }
 

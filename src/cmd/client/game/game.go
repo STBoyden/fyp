@@ -375,19 +375,22 @@ func (g *Game) Update() error {
 		}
 	}
 
+	id := g.clientID
+	player := g.localPlayer
+
+	go updateServer(id, player, g.udpConn, g.logger)
+
 	return nil
 }
 
-func (g *Game) UpdateServer() {
-	_, err := g.udpConn.Write(state.WithUpdatedPlayerState(g.clientID, g.localPlayer))
+func updateServer(clientID uuid.NullUUID, player ctypes.Player, conn *state.UDPConnection, logger *logging.Logger) {
+	_, err := conn.Write(state.WithUpdatedPlayerState(clientID, player))
 	if err != nil {
-		g.logger.Errorf("error updating server's version of this player via UDP: %s", err.Error())
+		logger.Errorf("error updating server's version of this player via UDP: %s", err.Error())
 	}
 }
 
 func (g *Game) Draw(screen *ebiten.Image) {
-	g.UpdateServer()
-
 	g.currentMap.Draw(screen, &g.tiles)
 	g.localPlayer.Draw(screen)
 
