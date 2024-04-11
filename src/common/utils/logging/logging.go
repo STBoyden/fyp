@@ -9,33 +9,39 @@ import (
 	"io"
 	"log"
 	"os"
+	"strings"
 
 	"github.com/TwiN/go-color"
 )
 
-type logLevel int
+type LogLevel int
 
 // Standard log levels. The lower the level, the more information is shown.
 const (
-	TRACE logLevel = iota
+	TRACE LogLevel = iota
 	DEBUG
 	INFO
 	WARN
 	ERROR
 	FATAL
 	_LogLevelAmount
+	UNKNOWN
 )
 
-var colours = [...]string{
-	color.Gray,
-	color.Green,
-	color.Cyan,
-	color.Yellow,
-	color.Red,
-	color.Purple,
-}
+var (
+	levels       = [...]LogLevel{TRACE, DEBUG, INFO, WARN, ERROR, FATAL}
+	levelStrings = [...]string{"TRACE", "DEBUG", "INFO", "WARN", "ERROR", "FATAL"}
+	colours      = [...]string{
+		color.Gray,
+		color.Green,
+		color.Cyan,
+		color.Yellow,
+		color.Red,
+		color.Purple,
+	}
+)
 
-func getColourForLevel(level logLevel) string {
+func getColourForLevel(level LogLevel) string {
 	if level.String() == "UNKNOWN" {
 		return color.GrayBackground
 	}
@@ -43,14 +49,22 @@ func getColourForLevel(level logLevel) string {
 	return colours[level]
 }
 
-func (level logLevel) String() string {
-	strings := [...]string{"TRACE", "DEBUG", "INFO", "WARN", "ERROR", "FATAL"}
+func LevelFromString(s string) LogLevel {
+	for index, levelStr := range levelStrings {
+		if strings.EqualFold(s, levelStr) {
+			return levels[index]
+		}
+	}
 
+	return UNKNOWN
+}
+
+func (level LogLevel) String() string {
 	if level < TRACE || level >= _LogLevelAmount {
 		return "UNKNOWN"
 	}
 
-	return strings[level]
+	return levelStrings[level]
 }
 
 /*
@@ -81,11 +95,21 @@ func NewServer() *Logger {
 	}
 }
 
-func (l *Logger) log(output io.Writer, level logLevel, format string, v ...any) {
+func (l *Logger) log(w io.Writer, level LogLevel, format string, v ...any) {
+	if levelStr, present := os.LookupEnv("LOG_LEVEL"); present {
+		levelEnv := LevelFromString(levelStr)
+
+		if level < levelEnv {
+			return
+		}
+	} else if level < INFO {
+		return
+	}
+
 	colourisedLevel := color.Ize(getColourForLevel(level), level.String())
 	message := fmt.Sprintf(format, v...)
 
-	l.inner.SetOutput(output)
+	l.inner.SetOutput(w)
 	l.inner.Printf("[%s]: %s", colourisedLevel, message)
 }
 
@@ -137,4 +161,16 @@ func (l *Logger) Errorf(format string, v ...any) {
 // Error outputs a simple message at the ERROR level.
 func (l *Logger) Error(message string) {
 	l.log(os.Stderr, ERROR, message)
+}
+
+// Fatalf outputs a formattable message at the FATAL level, and exits the application.
+func (l *Logger) Fatalf(format string, v ...any) {
+	l.log(os.Stderr, FATAL, format, v...)
+	os.Exit(1)
+}
+
+// Fatal outputs a simple message at the FATAL level, and exits the application.
+func (l *Logger) Fatal(message string) {
+	l.log(os.Stderr, FATAL, message)
+	os.Exit(1)
 }
