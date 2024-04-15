@@ -19,10 +19,10 @@ type TCPHandler struct {
 	connectionsMap *models.ConnectionsMap[state.TCPConnection]
 	socket         *state.TCPSocketListener
 	port           int
-	closeChannel   <-chan interface{}
+	closeChannel   <-chan any
 }
 
-func NewTCPHandler(logger *logging.Logger, serverState *models.ServerState, socket *net.TCPListener, tcpPort int, gracefulCloseChannel <-chan interface{}) *TCPHandler {
+func NewTCPHandler(logger *logging.Logger, serverState *models.ServerState, socket *net.TCPListener, tcpPort int, gracefulCloseChannel <-chan any) *TCPHandler {
 	return &TCPHandler{
 		logger:         logger,
 		serverState:    serverState,

@@ -24,7 +24,7 @@ type UDPHandler struct {
 	connectedAmount int
 	socket          state.UDPConnection
 	connInfo        netip.AddrPort
-	closeChannel    <-chan interface{}
+	closeChannel    <-chan any
 	exitChannel     chan bool
 	updateID        atomic.Uint64
 	updates         map[uint64]state.State
@@ -32,7 +32,7 @@ type UDPHandler struct {
 
 var _ Handler = &UDPHandler{}
 
-func NewUDPHandler(logger *logging.Logger, serverState *models.ServerState, socket *net.UDPConn, udpHost *net.UDPAddr, udpPort int, gracefulCloseChannel <-chan interface{}) *UDPHandler {
+func NewUDPHandler(logger *logging.Logger, serverState *models.ServerState, socket *net.UDPConn, udpHost *net.UDPAddr, udpPort int, gracefulCloseChannel <-chan any) *UDPHandler {
 	return &UDPHandler{
 		logger:          logger,
 		serverState:     serverState,

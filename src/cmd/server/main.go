@@ -39,7 +39,7 @@ func main() {
 
 	var tcpPortStr, udpPortStr string
 	serverState, serverStateUpdatedChannel := models.NewServerState()
-	gracefulCloseChannel := make(chan interface{})
+	gracefulCloseChannel := make(chan any)
 
 	if _p, isPresent := os.LookupEnv("TCP_PORT"); isPresent {
 		tcpPortStr = _p

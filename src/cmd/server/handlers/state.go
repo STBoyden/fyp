@@ -9,11 +9,11 @@ type StateHandler struct {
 	logger        *logging.Logger
 	serverState   *models.ServerState
 	updateChannel <-chan string
-	closeChannel  <-chan interface{}
+	closeChannel  <-chan any
 	exitChannel   chan bool
 }
 
-func NewStateHandler(logger *logging.Logger, serverState *models.ServerState, updateChannel <-chan string, gracefulCloseChannel <-chan interface{}) *StateHandler {
+func NewStateHandler(logger *logging.Logger, serverState *models.ServerState, updateChannel <-chan string, gracefulCloseChannel <-chan any) *StateHandler {
 	return &StateHandler{
 		logger:        logger,
 		serverState:   serverState,

@@ -52,7 +52,7 @@ type Game struct {
 	tcpIsConnected      bool
 	udpConn             *state.UDPConnection
 	udpIsConnected      bool
-	udpCloseLoopChannel chan interface{}
+	udpCloseLoopChannel chan any
 	rxUDPSocketConn     *state.UDPConnection
 
 	stateChannel       chan state.State
@@ -75,7 +75,7 @@ func New(
 		tcpPort:             tcpPort,
 		udpPort:             udpPort,
 		logger:              logger,
-		udpCloseLoopChannel: make(chan interface{}),
+		udpCloseLoopChannel: make(chan any),
 		stateChannel:        make(chan state.State),
 		forceUpdateChannel:  make(chan state.State),
 		clientID:            uuid.NullUUID{Valid: false},
