@@ -6,12 +6,12 @@ import (
 	"strings"
 	"sync/atomic"
 
-	"fyp/src/common/ctypes"
-	"fyp/src/common/ctypes/state"
-	"fyp/src/common/utils/logging"
-	"fyp/src/internal/models"
+	"fyp/common/ctypes"
+	"fyp/common/ctypes/state"
+	"fyp/common/utils/logging"
+	"fyp/internal/models"
 
-	typedsockets "fyp/src/common/utils/net/typed-sockets"
+	typedsockets "fyp/common/utils/net/typed-sockets"
 
 	"github.com/google/uuid"
 )

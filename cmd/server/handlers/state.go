@@ -1,8 +1,8 @@
 package handlers
 
 import (
-	"fyp/src/common/utils/logging"
-	"fyp/src/internal/models"
+	"fyp/common/utils/logging"
+	"fyp/internal/models"
 )
 
 type StateHandler struct {

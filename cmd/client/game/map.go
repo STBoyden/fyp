@@ -7,8 +7,8 @@ import (
 	"os"
 	"strings"
 
-	"fyp/src/common/ctypes"
-	"fyp/src/common/ctypes/tiles"
+	"fyp/common/ctypes"
+	"fyp/common/ctypes/tiles"
 
 	"github.com/hajimehoshi/ebiten/v2"
 )

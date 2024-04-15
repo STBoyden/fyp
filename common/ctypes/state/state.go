@@ -13,8 +13,8 @@ import (
 
 	"github.com/goccy/go-json"
 
-	"fyp/src/common/ctypes"
-	typedsockets "fyp/src/common/utils/net/typed-sockets"
+	"fyp/common/ctypes"
+	typedsockets "fyp/common/utils/net/typed-sockets"
 
 	"github.com/google/uuid"
 )

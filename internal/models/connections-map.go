@@ -3,7 +3,7 @@ package models
 import (
 	"sync"
 
-	"fyp/src/common/ctypes/state"
+	"fyp/common/ctypes/state"
 )
 
 type typedConnections interface {

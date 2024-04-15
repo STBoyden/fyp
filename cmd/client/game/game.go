@@ -4,13 +4,13 @@ import (
 	"net"
 	"strings"
 
+	"fyp/common/ctypes"
+	"fyp/common/ctypes/state"
+	"fyp/common/ctypes/tiles"
+	"fyp/common/utils/logging"
 	"fyp/resources"
-	"fyp/src/common/ctypes"
-	"fyp/src/common/ctypes/state"
-	"fyp/src/common/ctypes/tiles"
-	"fyp/src/common/utils/logging"
 
-	typedsockets "fyp/src/common/utils/net/typed-sockets"
+	typedsockets "fyp/common/utils/net/typed-sockets"
 
 	"github.com/ebitenui/ebitenui"
 	"github.com/ebitenui/ebitenui/widget"

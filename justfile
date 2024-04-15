@@ -46,8 +46,8 @@ install_tools: install_formatter install_linter install_godoc install_goenums
 check: fmt lint
 
 doc:
-    @echo "Documentation hosted on http://127.0.0.1:3000/pkg/fyp/src/"
-    @echo
+    @echo "Documentation hosted on http://127.0.0.1:3000/pkg/fyp/"
+    @echo ""
     @godoc -index -http=:3000
 
 [private]
@@ -78,9 +78,9 @@ clean:
 generate:
     @go mod tidy
     go generate fyp/resources/
-    go generate fyp/src/common/ctypes
-    go generate fyp/src/common/ctypes/state
-    go generate fyp/src/common/ctypes/tiles
+    go generate fyp/common/ctypes
+    go generate fyp/common/ctypes/state
+    go generate fyp/common/ctypes/tiles
 
 [private]
 prebuild: generate pre
@@ -94,10 +94,10 @@ prerun: pre
     go mod tidy
 
 build_game: clean prebuild
-    go build {{ ld_flags }} {{ go_flags }} -o {{ build_dir }}/game{{ ext }} src/cmd/client/main.go
+    go build {{ ld_flags }} {{ go_flags }} -o {{ build_dir }}/game{{ ext }} cmd/client/main.go
 
 build_server: clean prebuild
-    go build {{ ld_flags }} {{ go_flags }} -o {{ build_dir }}/server{{ ext }} src/cmd/server/main.go
+    go build {{ ld_flags }} {{ go_flags }} -o {{ build_dir }}/server{{ ext }} cmd/server/main.go
 
 build: build_game build_server
 
@@ -125,8 +125,8 @@ run: clean build prerun
 
 [private]
 prepackage: clean prebuild
-    go build {{ release_ld_flags }} -o {{ dist_dir }}/game{{ ext }} src/cmd/client/main.go
-    go build {{ release_ld_flags }} -o {{ dist_dir }}/server{{ ext }} src/cmd/server/main.go
+    go build {{ release_ld_flags }} -o {{ dist_dir }}/game{{ ext }} cmd/client/main.go
+    go build {{ release_ld_flags }} -o {{ dist_dir }}/server{{ ext }} cmd/server/main.go
 
 [unix]
 package: prepackage

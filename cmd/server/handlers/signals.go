@@ -5,7 +5,7 @@ import (
 	"os/signal"
 	"syscall"
 
-	"fyp/src/common/utils/logging"
+	"fyp/common/utils/logging"
 )
 
 type SignalHandler struct {

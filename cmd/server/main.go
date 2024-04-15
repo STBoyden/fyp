@@ -6,10 +6,10 @@ import (
 	"strconv"
 	"sync"
 
-	"fyp/src/cmd/server/handlers"
-	"fyp/src/common/utils/env"
-	"fyp/src/common/utils/logging"
-	"fyp/src/internal/models"
+	"fyp/cmd/server/handlers"
+	"fyp/common/utils/env"
+	"fyp/common/utils/logging"
+	"fyp/internal/models"
 )
 
 var log = logging.NewServer()

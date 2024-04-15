@@ -72,7 +72,7 @@ import (
 	"image"
 	"time"
 
-	"fyp/src/common/ctypes"
+	"fyp/common/ctypes"
 
 	"github.com/hajimehoshi/ebiten/v2"
 )

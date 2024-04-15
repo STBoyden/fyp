@@ -3,8 +3,8 @@ package models
 import (
 	"sync"
 
-	"fyp/src/common/ctypes"
-	"fyp/src/common/ctypes/state"
+	"fyp/common/ctypes"
+	"fyp/common/ctypes/state"
 )
 
 type ServerState struct {

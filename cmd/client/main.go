@@ -3,9 +3,9 @@ package main
 import (
 	"os"
 
-	"fyp/src/cmd/client/game"
-	"fyp/src/common/utils/env"
-	"fyp/src/common/utils/logging"
+	"fyp/cmd/client/game"
+	"fyp/common/utils/env"
+	"fyp/common/utils/logging"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/sqweek/dialog"
