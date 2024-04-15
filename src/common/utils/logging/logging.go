@@ -163,14 +163,25 @@ func (l *Logger) Error(message string) {
 	l.log(os.Stderr, ERROR, message)
 }
 
-// Fatalf outputs a formattable message at the FATAL level, and exits the application.
-func (l *Logger) Fatalf(format string, v ...any) {
+/*
+Fatalf outputs a formattable message at the FATAL level, and optionally exits the
+application.
+*/
+func (l *Logger) Fatalf(doExit bool, format string, v ...any) {
 	l.log(os.Stderr, FATAL, format, v...)
-	os.Exit(1)
+
+	if doExit {
+		os.Exit(1)
+	}
 }
 
-// Fatal outputs a simple message at the FATAL level, and exits the application.
-func (l *Logger) Fatal(message string) {
+/*
+Fatal outputs a simple message at the FATAL level, and optionally exits the application.
+*/
+func (l *Logger) Fatal(doExit bool, message string) {
 	l.log(os.Stderr, FATAL, message)
-	os.Exit(1)
+
+	if doExit {
+		os.Exit(1)
+	}
 }
