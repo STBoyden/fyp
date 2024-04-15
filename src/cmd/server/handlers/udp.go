@@ -16,7 +16,7 @@ import (
 	"github.com/google/uuid"
 )
 
-type GameHandler struct {
+type UDPHandler struct {
 	logger          *logging.Logger
 	serverState     *models.ServerState
 	connectionsMap  *models.ConnectionsMap[state.UDPConnection]
@@ -30,10 +30,10 @@ type GameHandler struct {
 	updates         map[uint64]state.State
 }
 
-var _ Handler = &GameHandler{}
+var _ Handler = &UDPHandler{}
 
-func NewGameHandler(logger *logging.Logger, serverState *models.ServerState, socket *net.UDPConn, udpHost *net.UDPAddr, udpPort int, gracefulCloseChannel <-chan interface{}) *GameHandler {
-	return &GameHandler{
+func NewUDPHandler(logger *logging.Logger, serverState *models.ServerState, socket *net.UDPConn, udpHost *net.UDPAddr, udpPort int, gracefulCloseChannel <-chan interface{}) *UDPHandler {
+	return &UDPHandler{
 		logger:          logger,
 		serverState:     serverState,
 		connectionsMap:  models.NewConnectionsMap[state.UDPConnection](),
@@ -46,71 +46,71 @@ func NewGameHandler(logger *logging.Logger, serverState *models.ServerState, soc
 	}
 }
 
-func (gh *GameHandler) handleDisconnection(id, name string) {
-	if !gh.serverState.ContainsPlayer(name) {
+func (uh *UDPHandler) handleDisconnection(id, name string) {
+	if !uh.serverState.ContainsPlayer(name) {
 		return
 	}
 
-	gh.connectionsMap.DeleteConnection(id)
-	gh.serverState.RemovePlayer(name)
+	uh.connectionsMap.DeleteConnection(id)
+	uh.serverState.RemovePlayer(name)
 
-	players := gh.serverState.GetPlayers()
+	players := uh.serverState.GetPlayers()
 
-	for entry := range gh.connectionsMap.Iter() {
-		_, err := entry.Conn.Write(state.WithUpdatedPlayers(int(gh.updateID.Load()), players))
+	for entry := range uh.connectionsMap.Iter() {
+		_, err := entry.Conn.Write(state.WithUpdatedPlayers(int(uh.updateID.Load()), players))
 		if err != nil {
-			gh.logger.Errorf("[UDP: handleDisconnection] Could not update %s's version of currently connected players: %s", name, err.Error())
+			uh.logger.Errorf("[UDP: handleDisconnection] Could not update %s's version of currently connected players: %s", name, err.Error())
 			continue
 		}
 
-		if len(gh.serverState.GetPlayers()) < 2 {
+		if len(uh.serverState.GetPlayers()) < 2 {
 			_, err := entry.Conn.Write(state.WithServerMakingPlayerUnableToMove())
 			if err != nil {
-				gh.logger.Errorf("[UDP: handleDisconnection] Could not make player unmovable: %s", err.Error())
+				uh.logger.Errorf("[UDP: handleDisconnection] Could not make player unmovable: %s", err.Error())
 			}
 		}
 	}
 }
 
-func (gh *GameHandler) handleConnection(clientID string, clientState state.State) {
-	if gh.serverState.ContainsPlayer(clientState.Client.Player.Name) {
-		gh.serverState.UpdatePlayer(clientState.Client.Player.Name, clientState.Client.Player.Inner)
+func (uh *UDPHandler) handleConnection(clientID string, clientState state.State) {
+	if uh.serverState.ContainsPlayer(clientState.Client.Player.Name) {
+		uh.serverState.UpdatePlayer(clientState.Client.Player.Name, clientState.Client.Player.Inner)
 	} else {
-		gh.serverState.AddPlayer(clientState.Client.Player.Name, clientState.Client.Player.Inner)
+		uh.serverState.AddPlayer(clientState.Client.Player.Name, clientState.Client.Player.Inner)
 	}
 
-	for entry := range gh.connectionsMap.Iter() {
+	for entry := range uh.connectionsMap.Iter() {
 		if clientID == entry.ID {
 			continue
 		}
 
-		otherPlayers := gh.serverState.FilterPlayers(func(key string, _ ctypes.Player) bool {
+		otherPlayers := uh.serverState.FilterPlayers(func(key string, _ ctypes.Player) bool {
 			return key != entry.ID // we want only ids that aren't the current entry's ID
 		})
 
-		_, err := entry.Conn.Write(state.WithUpdatedPlayers(int(gh.updateID.Load()), otherPlayers))
+		_, err := entry.Conn.Write(state.WithUpdatedPlayers(int(uh.updateID.Load()), otherPlayers))
 		if err != nil {
-			gh.logger.Errorf("[UDP: handleConnection] Could not send other player state: %s", err.Error())
+			uh.logger.Errorf("[UDP: handleConnection] Could not send other player state: %s", err.Error())
 		}
 
-		if len(gh.serverState.GetPlayers()) >= 2 {
+		if len(uh.serverState.GetPlayers()) >= 2 {
 			_, err := entry.Conn.Write(state.WithServerMakingPlayerAbleToMove())
 			if err != nil {
-				gh.logger.Errorf("[UDP: handleConnection] Could not make player movable: %s", err.Error())
+				uh.logger.Errorf("[UDP: handleConnection] Could not make player movable: %s", err.Error())
 			}
 		}
 	}
 }
 
-func (gh *GameHandler) Handle() error {
-	gh.logger.Infof("Started game data socket (UDP) on %d\n", gh.connInfo.Port())
+func (uh *UDPHandler) Handle() error {
+	uh.logger.Infof("Started game data socket (UDP) on %d\n", uh.connInfo.Port())
 
 	// Async closure to handle the closing of the socket, waits for the gracefulCloseChannel, and exits when it receives anything
 	go func() {
-		<-gh.closeChannel
-		gh.logger.Infof("[UDP] Stopping...")
-		gh.socket.Close()
-		gh.exitChannel <- true
+		<-uh.closeChannel
+		uh.logger.Infof("[UDP] Stopping...")
+		uh.socket.Close()
+		uh.exitChannel <- true
 	}()
 
 	clientState := state.Empty()
@@ -122,14 +122,14 @@ outer:
 	for {
 
 		select {
-		case doClose := <-gh.exitChannel:
+		case doClose := <-uh.exitChannel:
 			if doClose {
 				break outer
 			}
 		default:
 		}
 
-		size, addr, err := gh.socket.ReadFrom(&clientState)
+		size, addr, err := uh.socket.ReadFrom(&clientState)
 
 		if addr == nil {
 			continue
@@ -142,7 +142,7 @@ outer:
 				continue
 			}
 
-			gh.logger.Errorf("[UDP] %s\n", err)
+			uh.logger.Errorf("[UDP] %s\n", err)
 			continue
 		}
 
@@ -150,7 +150,7 @@ outer:
 			continue
 		}
 
-		gh.updateID.Add(1)
+		uh.updateID.Add(1)
 
 		if clientState.Message == state.Messages.FROM_CLIENT {
 			clientData := clientState.Client
@@ -161,45 +161,45 @@ outer:
 				clientIP = addr.String()[:portColonIndex]
 				clientPort = clientData.UDPPort
 
-				gh.logger.Debugf("[UDP] Initial connection with client at %s: %s", addr, clientState)
+				uh.logger.Debugf("[UDP] Initial connection with client at %s: %s", addr, clientState)
 				id, err := uuid.NewRandom()
 				if err != nil {
-					gh.logger.Errorf("[UDP] Could not pre-generate UUID: %s", err)
+					uh.logger.Errorf("[UDP] Could not pre-generate UUID: %s", err)
 				}
-				connectedIDs[id] = gh.connectedAmount
+				connectedIDs[id] = uh.connectedAmount
 
 				clientConn, err := typedsockets.DialUDP[state.State](clientIP, clientPort)
 				if err != nil {
-					gh.logger.Errorf("[UDP] Could not connect to client at '%s:%s'", clientIP, clientPort)
+					uh.logger.Errorf("[UDP] Could not connect to client at '%s:%s'", clientIP, clientPort)
 					return err
 				}
 
-				gh.connectionsMap.UpdateConnection(id.String(), clientConn)
-				gh.logger.Infof("[UDP] Connected to client's UDP socket at %s:%s. Client ID: %s", clientIP, clientPort, id)
+				uh.connectionsMap.UpdateConnection(id.String(), clientConn)
+				uh.logger.Infof("[UDP] Connected to client's UDP socket at %s:%s. Client ID: %s", clientIP, clientPort, id)
 
 				_, err = clientConn.Write(state.WithNewClientConnection(id, connectedIDs[id]))
 				if err != nil {
-					gh.logger.Errorf("[UDP] Couldn't send to client: %s", err.Error())
+					uh.logger.Errorf("[UDP] Couldn't send to client: %s", err.Error())
 					return err
 				}
-				gh.logger.Infof("[UDP] Sent initial data to client at %s:%s", clientIP, clientPort)
+				uh.logger.Infof("[UDP] Sent initial data to client at %s:%s", clientIP, clientPort)
 
 				continue
 
 			case state.Submessages.CLIENT_READY:
 				id := clientData.ID.UUID.String()
 
-				if gh.connectionsMap.ContainsConnection(id) {
-					if _, ok := gh.connectionSlots[clientData.ID.UUID]; !ok && gh.connectedAmount <= 4 {
-						gh.connectionSlots[clientData.ID.UUID] = gh.connectedAmount
-						connectedIDs[clientData.ID.UUID] = gh.connectedAmount
+				if uh.connectionsMap.ContainsConnection(id) {
+					if _, ok := uh.connectionSlots[clientData.ID.UUID]; !ok && uh.connectedAmount <= 4 {
+						uh.connectionSlots[clientData.ID.UUID] = uh.connectedAmount
+						connectedIDs[clientData.ID.UUID] = uh.connectedAmount
 
-						gh.connectedAmount++
+						uh.connectedAmount++
 					}
 
-					gh.handleConnection(id, clientState)
+					uh.handleConnection(id, clientState)
 				} else {
-					gh.logger.Errorf("[UDP] Client with id '%s' not found", clientState.Client.ID.UUID)
+					uh.logger.Errorf("[UDP] Client with id '%s' not found", clientState.Client.ID.UUID)
 					continue
 				}
 
@@ -207,39 +207,39 @@ outer:
 				id := clientData.ID.UUID.String()
 				requestedUpdateID := clientData.UpdateID
 
-				if !gh.connectionsMap.ContainsConnection(id) {
-					gh.logger.Errorf("[UDP] Client with id '%s' not found", id)
+				if !uh.connectionsMap.ContainsConnection(id) {
+					uh.logger.Errorf("[UDP] Client with id '%s' not found", id)
 				}
 
-				prevState, ok := gh.updates[requestedUpdateID]
+				prevState, ok := uh.updates[requestedUpdateID]
 
 				if !ok {
-					gh.logger.Errorf("[UDP] Requested update with id '%d' not found", requestedUpdateID)
+					uh.logger.Errorf("[UDP] Requested update with id '%d' not found", requestedUpdateID)
 				}
 
 				prevState.SetAsResending()
 
-				conn := gh.connectionsMap.GetConnection(id)
+				conn := uh.connectionsMap.GetConnection(id)
 				_, err := conn.Write(prevState)
 				if err != nil {
-					gh.logger.Errorf("[UDP] Could not resend update with id '%d': %s", requestedUpdateID, err)
+					uh.logger.Errorf("[UDP] Could not resend update with id '%d': %s", requestedUpdateID, err)
 				}
 			case state.Submessages.CLIENT_DISCONNECTING:
 				id := clientData.ID.UUID.String()
 				name := clientData.Player.Name
 
-				gh.connectedAmount--
-				delete(gh.connectionSlots, clientData.ID.UUID)
+				uh.connectedAmount--
+				delete(uh.connectionSlots, clientData.ID.UUID)
 
-				gh.handleDisconnection(id, name)
+				uh.handleDisconnection(id, name)
 
-				gh.logger.Infof("[UDP] Disconnected from client with id: %s", id)
+				uh.logger.Infof("[UDP] Disconnected from client with id: %s", id)
 			}
 		}
 
-		gh.updates[gh.updateID.Load()] = gh.serverState.Copy()
+		uh.updates[uh.updateID.Load()] = uh.serverState.Copy()
 	}
 
-	gh.logger.Warn("[UDP] Closed")
+	uh.logger.Warn("[UDP] Closed")
 	return nil
 }

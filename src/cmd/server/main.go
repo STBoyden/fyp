@@ -3,10 +3,8 @@ package main
 import (
 	"net"
 	"os"
-	"os/signal"
 	"strconv"
 	"sync"
-	"syscall"
 
 	"fyp/src/cmd/server/handlers"
 	"fyp/src/common/utils/env"
@@ -17,19 +15,19 @@ import (
 var log = logging.NewServer()
 
 // We use this later in the main function to run the UDP and TCP handlers parallel.
-func makeParallel(functions ...func() error) {
+func makeParallel(handles ...handlers.Handler) {
 	var group sync.WaitGroup
-	group.Add(len(functions))
+	group.Add(len(handles))
 
 	defer group.Wait()
 
-	for _, function := range functions {
+	for _, handler := range handles {
 		go func(f func() error) {
 			defer group.Done()
 			if err := f(); err != nil {
 				log.Errorf("Error occurred in handle: %s", err.Error())
 			}
-		}(function)
+		}(handler.Handle)
 	}
 }
 
@@ -65,7 +63,7 @@ func main() {
 		return
 	}
 
-	errorCorrectionSocket, err := net.ListenTCP(
+	tcpSocket, err := net.ListenTCP(
 		"tcp",
 		&net.TCPAddr{IP: net.IPv4(0, 0, 0, 0), Port: tcpPort},
 	)
@@ -74,40 +72,21 @@ func main() {
 		return
 	}
 
-	errorCorrectionHandler := handlers.NewErrorCorrectionHandler(log, serverState, errorCorrectionSocket, tcpPort, gracefulCloseChannel)
-	correctionSocketFunc := errorCorrectionHandler.Handle
-
 	// Handle UDP connections to the server.
 	addr := &net.UDPAddr{IP: net.IPv4(0, 0, 0, 0), Port: udpPort}
-	gameSocket, err := net.ListenUDP("udp", addr)
+	udpSocket, err := net.ListenUDP("udp", addr)
 	if err != nil {
 		log.Errorf("Could not start UDP socket: %s", err.Error())
 		return
 	}
 
-	gameLogicHandler := handlers.NewGameHandler(log, serverState, gameSocket, addr, udpPort, gracefulCloseChannel)
-	gameSocketFunc := gameLogicHandler.Handle
-
+	tcpHandler := handlers.NewTCPHandler(log, serverState, tcpSocket, tcpPort, gracefulCloseChannel)
+	udpHandler := handlers.NewUDPHandler(log, serverState, udpSocket, addr, udpPort, gracefulCloseChannel)
 	stateHandler := handlers.NewStateHandler(log, serverState, serverStateUpdatedChannel, gracefulCloseChannel)
-	stateFunc := stateHandler.Handle
-	handlerFunctions := []func() error{correctionSocketFunc, gameSocketFunc, stateFunc}
+	handles := []handlers.Handler{tcpHandler, udpHandler, stateHandler}
 
-	signalChannel := make(chan os.Signal, 2)
-	signal.Notify(signalChannel, os.Interrupt, syscall.SIGTERM)
-	signalFunc := func() error {
-		for s := range signalChannel {
-			if s == os.Interrupt || s == syscall.SIGTERM {
-				log.Infof("[SIGNAL HANDLER] Received %s signal, gracefully shutting down", s.String())
-				for range len(handlerFunctions) {
-					gracefulCloseChannel <- nil
-				}
-				break
-			}
-		}
+	signaler := handlers.NewSignalHandler(log, &handles, gracefulCloseChannel)
 
-		return nil
-	}
-
-	makeParallel(append(handlerFunctions, signalFunc)...)
+	makeParallel(append(handles, &signaler)...)
 	log.Info("Exited")
 }
