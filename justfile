@@ -39,7 +39,7 @@ install_godoc:
     go install golang.org/x/tools/cmd/godoc@latest
 
 install_goenums:
-    go install github.com/zarldev/goenums@latest
+    go install github.com/zarldev/goenums@v0.2.6
 
 install_tools: install_formatter install_linter install_godoc install_goenums
 
