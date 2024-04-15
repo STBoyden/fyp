@@ -19,15 +19,9 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/audio"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
-	"github.com/sqweek/dialog"
 	"golang.org/x/image/font"
 	"golang.org/x/image/font/gofont/goregular"
 )
-
-func logErrorAndShowDialog(logger *logging.Logger, s string, v ...any) {
-	logger.Fatalf(false, s, v...)
-	dialog.Message(s, v...).Error()
-}
 
 type Game struct {
 	ui                  *ebitenui.UI
@@ -125,13 +119,13 @@ func (g *Game) init() error {
 
 		_, err := net.ResolveTCPAddr("tcp", address)
 		if err != nil {
-			logErrorAndShowDialog(g.logger, "Could not resolve TCP address: %s", err.Error())
+			g.logger.Fatalf(false, "Could not resolve TCP address: %s", err.Error())
 			return err
 		}
 
 		conn, err := typedsockets.DialTCP[state.State](g.serverAddress, g.tcpPort)
 		if err != nil {
-			logErrorAndShowDialog(g.logger, "Could not connect to TCP socket: %s", err.Error())
+			g.logger.Fatalf(false, "Could not connect to TCP socket: %s", err.Error())
 			return err
 		}
 
@@ -150,13 +144,13 @@ func (g *Game) init() error {
 
 		_, err := net.ResolveUDPAddr("udp", address)
 		if err != nil {
-			logErrorAndShowDialog(g.logger, "Could not resolve UDP address: %s", err.Error())
+			g.logger.Fatalf(false, "Could not resolve UDP address: %s", err.Error())
 			return err
 		}
 
 		conn, err := typedsockets.DialUDP[state.State](g.serverAddress, g.udpPort)
 		if err != nil {
-			logErrorAndShowDialog(g.logger, "Could not connect to UDP socket: %s", err.Error())
+			g.logger.Fatalf(false, "Could not connect to TCP socket: %s", err.Error())
 			return err
 		}
 
@@ -164,13 +158,13 @@ func (g *Game) init() error {
 
 		socket, err := typedsockets.NewTypedUDPSocketListener[state.State]("0")
 		if err != nil {
-			logErrorAndShowDialog(g.logger, "Could not start UDP socket: %s", err.Error())
+			g.logger.Fatalf(false, "Could not start UDP socket: %s", err.Error())
 			return err
 		}
 
 		socketConn, err := socket.Conn()
 		if err != nil {
-			logErrorAndShowDialog(g.logger, "Could not get connection from socket: %s", err.Error())
+			g.logger.Fatalf(false, "Could not get connection from socket: %s", err.Error())
 			return err
 		}
 
@@ -182,7 +176,7 @@ func (g *Game) init() error {
 
 		bytesWritten, err := conn.Write(s)
 		if err != nil {
-			logErrorAndShowDialog(g.logger, "[UDP] Could not send port to server: %s", err.Error())
+			g.logger.Errorf("[UDP] Could not send port to server: %s", err.Error())
 			return err
 		}
 
@@ -221,7 +215,7 @@ func (g *Game) init() error {
 
 		res := <-initStateChan
 		if err = res.Error; err != nil {
-			logErrorAndShowDialog(g.logger, "[UDP] Could not get initial state from server: %s", err.Error())
+			g.logger.Fatalf(false, "[UDP] Could not get initial state from server: %s", err.Error())
 			return err
 		}
 
@@ -233,7 +227,7 @@ func (g *Game) init() error {
 
 		player, err := ctypes.NewPlayer(res.State.Client.Colour, &g.spritesheet, res.State.Client.InitialPosition)
 		if err != nil {
-			logErrorAndShowDialog(g.logger, "[UDP] Could not create player from initial state from server: %s\n\nState received from server: %s", err.Error(), res.State)
+			g.logger.Fatalf(false, "[UDP] Could not create player from initial state from server: %s\n\nState received from server: %s", err.Error(), res.State)
 			return err
 		}
 

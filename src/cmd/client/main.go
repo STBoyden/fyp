@@ -8,6 +8,7 @@ import (
 	"fyp/src/common/utils/logging"
 
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/sqweek/dialog"
 )
 
 var log = logging.NewClient()
@@ -50,12 +51,12 @@ func main() {
 
 	log.Info("Starting game...")
 	if err := ebiten.RunGame(g); err != nil {
-		log.Error(err.Error())
+		dialog.Message(err.Error()).Error()
 	}
 
 	err := g.Delete()
 	if err != nil {
-		log.Errorf("Error occurred when deleting game: %s", err.Error())
+		log.Fatalf(false, "Error occurred when deleting game: %s", err.Error())
 	}
 
 	log.Info("Exited")
