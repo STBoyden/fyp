@@ -48,7 +48,7 @@ check: fmt lint
 doc:
     @echo "Documentation hosted on http://127.0.0.1:3000/pkg/fyp/"
     @echo ""
-    @godoc -index -http=:3000
+    @godoc -play -index -http=:3000
 
 [private]
 pre:
