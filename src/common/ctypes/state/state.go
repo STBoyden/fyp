@@ -159,9 +159,9 @@ func WithServerPing() State {
 	}
 }
 
-func (state *State) SetAsResending() {
-	state.Message = Messages.FROM_SERVER
-	state.Submessage = Submessages.SERVER_RESENDING_UPDATE_ID
+func (s *State) SetAsResending() {
+	s.Message = Messages.FROM_SERVER
+	s.Submessage = Submessages.SERVER_RESENDING_UPDATE_ID
 }
 
 // Check that `State` corrrectly implements `typedsockets.Convertable` and `fmt.Stringer`.
