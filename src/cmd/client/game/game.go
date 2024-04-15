@@ -55,11 +55,12 @@ type Game struct {
 	udpCloseLoopChannel chan interface{}
 	rxUDPSocketConn     *state.UDPConnection
 
-	stateChannel chan state.State
-	serverState  state.State
-	clientID     uuid.NullUUID
-	clientSlot   int
-	players      map[string]ctypes.Player
+	stateChannel       chan state.State
+	forceUpdateChannel chan state.State
+	serverState        state.State
+	clientID           uuid.NullUUID
+	clientSlot         int
+	players            map[string]ctypes.Player
 }
 
 func New(
@@ -76,6 +77,7 @@ func New(
 		logger:              logger,
 		udpCloseLoopChannel: make(chan interface{}),
 		stateChannel:        make(chan state.State),
+		forceUpdateChannel:  make(chan state.State),
 		clientID:            uuid.NullUUID{Valid: false},
 		clientSlot:          0,
 	}
@@ -262,6 +264,17 @@ func (g *Game) init() error {
 			}
 
 			g.logger.Tracef("[UDP-RX] Received %d bytes from server: %s", size, receivedState)
+
+			if receivedState.Server.PriorityUpdate {
+				g.logger.Trace("[UDP] Game received priority update: force updating")
+				g.forceUpdateChannel <- receivedState
+				continue
+			} else if (receivedState.Server.UpdateID - g.serverState.Server.UpdateID) > 500 {
+				g.logger.Trace("[UDP] Game is lagging by more than 500 updates: force updating")
+				g.forceUpdateChannel <- receivedState
+				continue
+			}
+
 			g.stateChannel <- receivedState
 		}
 	}(g.playerUpdateChannel)
@@ -341,6 +354,9 @@ func (g *Game) Update() error {
 	}
 
 	select {
+	case s := <-g.forceUpdateChannel:
+		g.logger.Trace("Force updated")
+		g.serverState = s
 	case s := <-g.stateChannel:
 		g.logger.Info("Updated from server")
 		g.serverState = s

@@ -185,7 +185,9 @@ outer:
 				uh.logger.Infof("[UDP] Sent initial data to client at %s:%s", clientIP, clientPort)
 
 				continue
-
+			case state.Submessages.CLIENT_SENDING_LOCAL_DATA:
+				uh.logger.Tracef("[UDP] Receiving client local data from: %s", clientData.ID.UUID.String())
+				fallthrough
 			case state.Submessages.CLIENT_READY:
 				id := clientData.ID.UUID.String()
 
@@ -197,12 +199,12 @@ outer:
 						uh.connectedAmount++
 					}
 
+					uh.logger.Tracef("[UDP] Handling connection for %s", id)
 					uh.handleConnection(id, clientState)
 				} else {
 					uh.logger.Errorf("[UDP] Client with id '%s' not found", clientState.Client.ID.UUID)
 					continue
 				}
-
 			case state.Submessages.CLIENT_REQUESTING_UPDATE_ID:
 				id := clientData.ID.UUID.String()
 				requestedUpdateID := clientData.UpdateID

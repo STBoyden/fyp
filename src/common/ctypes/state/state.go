@@ -37,8 +37,9 @@ type clientFields struct {
 }
 
 type serverFields struct {
-	Players  map[string]ctypes.Player `json:"players,omitempty"`
-	UpdateID int                      `json:"update_id,omitempty"`
+	Players        map[string]ctypes.Player `json:"players,omitempty"`
+	UpdateID       int                      `json:"update_id,omitempty"`
+	PriorityUpdate bool                     `json:"priority_update,omitempty"`
 }
 
 /*
@@ -59,8 +60,9 @@ func WithUpdatedPlayers(serverUpdateID int, playersMap map[string]ctypes.Player)
 		Message:    Messages.FROM_SERVER,
 		Submessage: Submessages.SERVER_UPDATING_PLAYERS,
 		Server: serverFields{
-			UpdateID: serverUpdateID,
-			Players:  playersMap,
+			UpdateID:       serverUpdateID,
+			Players:        playersMap,
+			PriorityUpdate: true,
 		},
 	}
 }
@@ -99,6 +101,7 @@ func WithServerMakingPlayerAbleToMove() State {
 	return State{
 		Message:    Messages.FROM_SERVER,
 		Submessage: Submessages.SERVER_THIS_CLIENT_CAN_MOVE,
+		Server:     serverFields{PriorityUpdate: true},
 	}
 }
 
@@ -106,6 +109,7 @@ func WithServerMakingPlayerUnableToMove() State {
 	return State{
 		Message:    Messages.FROM_SERVER,
 		Submessage: Submessages.SERVER_THIS_CLIENT_CANNOT_MOVE,
+		Server:     serverFields{PriorityUpdate: true},
 	}
 }
 
@@ -130,6 +134,7 @@ func WithNewClientConnection(clientID uuid.UUID, slot int) State {
 			InitialPosition: ctypes.NewPosition(100, 100),
 			Colour:          ctypes.PlayerColourFromInt(slot),
 		},
+		Server: serverFields{PriorityUpdate: true},
 	}
 }
 
